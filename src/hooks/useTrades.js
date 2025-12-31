@@ -105,14 +105,14 @@ const addTrade = async (tradeData) => {
   };
 };
 
-// Update trade
+// Update trade - FIXED to actually update, not create duplicate
 const updateTrade = async ({ tradeId, updates }) => {
   const sheetId = localStorage.getItem(STORAGE_KEYS.SHEET_ID);
   
-  // Find row index
+  // Find row index - search in column A starting from row 2
   const response = await window.gapi.client.sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: `${SHEETS.TRADES}!A:A`
+    range: `${SHEETS.TRADES}!A2:A`
   });
 
   const rows = response.result.values || [];
@@ -122,10 +122,13 @@ const updateTrade = async ({ tradeId, updates }) => {
     throw new Error('Trade not found');
   }
 
+  // Actual row number (add 2 because: 1 for header, 1 for 0-based index)
+  const actualRowNumber = rowIndex + 2;
+
   // Get existing trade data
   const tradeResponse = await window.gapi.client.sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: `${SHEETS.TRADES}!A${rowIndex + 1}:L${rowIndex + 1}`
+    range: `${SHEETS.TRADES}!A${actualRowNumber}:L${actualRowNumber}`
   });
 
   const existingData = tradeResponse.result.values[0];
@@ -162,9 +165,10 @@ const updateTrade = async ({ tradeId, updates }) => {
     now
   ];
 
+  // UPDATE the existing row, don't append
   await window.gapi.client.sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,
-    range: `${SHEETS.TRADES}!A${rowIndex + 1}:L${rowIndex + 1}`,
+    range: `${SHEETS.TRADES}!A${actualRowNumber}:L${actualRowNumber}`,
     valueInputOption: 'USER_ENTERED',
     resource: {
       values: [updatedData]
@@ -174,14 +178,30 @@ const updateTrade = async ({ tradeId, updates }) => {
   return parseTradeRow(updatedData);
 };
 
-// Delete trade
+// Delete trade - FIXED to use correct sheet ID
 const deleteTrade = async (tradeId) => {
   const sheetId = localStorage.getItem(STORAGE_KEYS.SHEET_ID);
+  
+  // Get the actual Trades sheet ID (not 0)
+  const sheetInfo = await window.gapi.client.sheets.spreadsheets.get({
+    spreadsheetId: sheetId,
+    fields: 'sheets(properties(sheetId,title))'
+  });
+  
+  const tradesSheet = sheetInfo.result.sheets.find(
+    s => s.properties.title === SHEETS.TRADES
+  );
+  
+  if (!tradesSheet) {
+    throw new Error('Trades sheet not found');
+  }
+  
+  const tradesSheetId = tradesSheet.properties.sheetId;
   
   // Find row index
   const response = await window.gapi.client.sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: `${SHEETS.TRADES}!A:A`
+    range: `${SHEETS.TRADES}!A2:A`
   });
 
   const rows = response.result.values || [];
@@ -191,17 +211,20 @@ const deleteTrade = async (tradeId) => {
     throw new Error('Trade not found');
   }
 
-  // Delete row
+  // Actual row index (add 1 for header row)
+  const actualRowIndex = rowIndex + 1;
+
+  // Delete row using correct sheet ID
   await window.gapi.client.sheets.spreadsheets.batchUpdate({
     spreadsheetId: sheetId,
     resource: {
       requests: [{
         deleteDimension: {
           range: {
-            sheetId: 0,
+            sheetId: tradesSheetId, // Use actual sheet ID, not 0
             dimension: 'ROWS',
-            startIndex: rowIndex,
-            endIndex: rowIndex + 1
+            startIndex: actualRowIndex,
+            endIndex: actualRowIndex + 1
           }
         }
       }]
