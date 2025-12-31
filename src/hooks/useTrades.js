@@ -136,7 +136,11 @@ const updateTrade = async ({ tradeId, updates }) => {
 
   // Handle image update
   let driveImageId = trade.driveImageId;
-  if (updates.screenshot) {
+  if (updates.driveImageId === '') {
+    // User explicitly deleted the image
+    driveImageId = '';
+  } else if (updates.screenshot) {
+    // User uploaded a new image
     const compressed = await imageCompression(updates.screenshot, {
       maxSizeMB: 1,
       maxWidthOrHeight: 1200,
@@ -148,6 +152,7 @@ const updateTrade = async ({ tradeId, updates }) => {
     const filename = `${tradeId}_${date}_${time}.jpg`;
     driveImageId = await googleAPI.uploadImage(compressed, filename);
   }
+  // Otherwise keep existing driveImageId
 
   const now = new Date().toISOString();
   const updatedData = [
