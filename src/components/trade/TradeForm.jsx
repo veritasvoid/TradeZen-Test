@@ -45,6 +45,7 @@ export const TradeForm = ({ defaultDate = null, trade = null, tags = [], onClose
   const [previewUrl, setPreviewUrl] = useState(
     trade?.driveImageId ? googleAPI.getImageUrl(trade.driveImageId) : null
   );
+  const [imageDeleted, setImageDeleted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const amount = watch('amount');
@@ -72,11 +73,13 @@ export const TradeForm = ({ defaultDate = null, trade = null, tags = [], onClose
     
     setScreenshot(file);
     setPreviewUrl(URL.createObjectURL(file));
+    setImageDeleted(false); // Reset deletion flag when new image selected
   };
 
   const handleRemoveImage = () => {
     setScreenshot(null);
     setPreviewUrl(null);
+    setImageDeleted(true); // Mark that user wants to delete the image
   };
 
   const onSubmit = async (data) => {
@@ -92,19 +95,30 @@ export const TradeForm = ({ defaultDate = null, trade = null, tags = [], onClose
       
       if (isEditing) {
         // UPDATE existing trade
+        const updates = {
+          date: data.date,
+          time: data.time,
+          amount: parseFloat(data.amount),
+          tagId: tag.tagId,
+          tagName: tag.name,
+          tagColor: tag.color,
+          tagEmoji: tag.emoji,
+          notes: data.notes
+        };
+        
+        // Handle image changes
+        if (imageDeleted) {
+          // User explicitly deleted the image
+          updates.driveImageId = ''; // Empty string to clear it
+        } else if (screenshot) {
+          // User uploaded a new image
+          updates.screenshot = screenshot;
+        }
+        // If neither, keep existing image (don't send screenshot or driveImageId)
+        
         await updateTrade.mutateAsync({
           tradeId: trade.tradeId,
-          updates: {
-            date: data.date,
-            time: data.time,
-            amount: parseFloat(data.amount),
-            tagId: tag.tagId,
-            tagName: tag.name,
-            tagColor: tag.color,
-            tagEmoji: tag.emoji,
-            screenshot: screenshot, // Only if new screenshot selected
-            notes: data.notes
-          }
+          updates
         });
       } else {
         // ADD new trade
