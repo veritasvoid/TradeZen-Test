@@ -203,6 +203,7 @@ const MonthView = () => {
         <DayPanel
           date={selectedDate}
           trades={groupedTrades[selectedDate] || []}
+          tags={tags}
           onClose={() => setSelectedDate(null)}
           onAddTrade={handleAddTrade}
         />
