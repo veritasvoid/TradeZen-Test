@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2, GripVertical } from 'lucide-react';
-import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/shared/Button';
 import { Modal } from '@/components/shared/Modal';
 import { useToast } from '@/components/shared/Toast';
@@ -31,20 +30,16 @@ const TagsView = () => {
 
   return (
     <>
-      <Header 
-        title="Strategy Tags"
-        actions={
-          <Button
-            onClick={handleAddTag}
-            size="sm"
-          >
+      <div className="p-6 pb-20 max-w-3xl mx-auto">
+        {/* Page Title with Add Button */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">Strategy Tags</h1>
+          <Button onClick={handleAddTag} size="sm">
             <Plus size={18} className="mr-1" />
             New Tag
           </Button>
-        }
-      />
-      
-      <div className="p-4 max-w-3xl mx-auto">
+        </div>
+        
         {isLoading ? (
           <Loading type="skeleton-card" />
         ) : tags.length === 0 ? (
