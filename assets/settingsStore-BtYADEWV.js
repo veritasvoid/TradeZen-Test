@@ -1,1 +1,0 @@
-import{y as n,D as r}from"./index-vZoB3_PJ.js";const a=n(e=>({settings:r,updateSettings:t=>{e(s=>({settings:{...s.settings,...t}}))},getCurrencySymbol:()=>a.getState().settings.currency}));export{a as u};
