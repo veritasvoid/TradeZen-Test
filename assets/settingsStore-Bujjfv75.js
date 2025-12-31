@@ -1,0 +1,1 @@
+import{F as n,G as r}from"./index-BuUkK6Xl.js";const a=n(e=>({settings:r,updateSettings:t=>{e(s=>({settings:{...s.settings,...t}}))},getCurrencySymbol:()=>a.getState().settings.currency}));export{a as u};
