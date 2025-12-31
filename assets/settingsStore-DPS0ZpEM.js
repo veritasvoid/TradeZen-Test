@@ -1,0 +1,1 @@
+import{F as n,G as r}from"./index-DnY_S7vy.js";const a=n(e=>({settings:r,updateSettings:t=>{e(s=>({settings:{...s.settings,...t}}))},getCurrencySymbol:()=>a.getState().settings.currency}));export{a as u};
