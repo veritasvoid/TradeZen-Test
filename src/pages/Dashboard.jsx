@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrades } from '@/hooks/useTrades';
+import { Header } from '@/components/layout/Header';
 import { Loading } from '@/components/shared/Loading';
 import { calculateYearlyStats, formatCompactCurrency } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -32,97 +33,95 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="p-4">
-        <Loading type="skeleton-grid" />
-      </div>
+      <>
+        <Header title="TradeZen" />
+        <div className="p-4">
+          <Loading type="skeleton-grid" />
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="p-4 max-w-7xl mx-auto space-y-6">
-      {/* Year Overview */}
-      <div>
-        <h2 className="text-2xl font-bold mb-4">{currentYear} Performance</h2>
-        
-        {/* Chart */}
-        <div className="card mb-4 p-6">
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={chartData}>
-              <XAxis 
-                dataKey="month" 
-                stroke="#a3a3a3"
-                fontSize={12}
-              />
-              <Bar 
-                dataKey="pl" 
-                radius={[8, 8, 0, 0]}
-                onClick={(data) => navigate(`/month/${currentYear}/${data.monthIndex}`)}
-                cursor="pointer"
-              >
-                {chartData.map((entry, index) => (
-                  <Cell 
-                    key={index}
-                    fill={entry.pl >= 0 ? '#10b981' : '#ef4444'}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+    <>
+      <Header title="TradeZen" />
+      
+      <div className="p-4 pb-20 max-w-7xl mx-auto space-y-6">
+        {/* Year Overview */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">{currentYear} Overview</h2>
+          
+          {/* Chart */}
+          <div className="card mb-4 h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <XAxis 
+                  dataKey="month" 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#9ca3af', fontSize: 12 }}
+                />
+                <Bar dataKey="pl" radius={[4, 4, 0, 0]}>
+                  {chartData.map((entry, index) => (
+                    <Cell 
+                      key={index}
+                      fill={entry.pl >= 0 ? '#10b981' : '#ef4444'}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
 
-        {/* Stats Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard 
-            label="Total P&L" 
-            value={formatCompactCurrency(totalPL, currency)}
-            color={totalPL >= 0 ? 'profit' : 'loss'}
-          />
-          <StatCard 
-            label="Trades" 
-            value={totalTrades}
-          />
-          <StatCard 
-            label="Win Rate" 
-            value={`${overallWinRate}%`}
-            color={overallWinRate >= 50 ? 'profit' : 'loss'}
-          />
-          <StatCard 
-            label="W/L" 
-            value={`${totalWins}/${totalLosses}`}
-          />
-        </div>
-      </div>
-
-      {/* Monthly Tiles */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Monthly Breakdown</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {yearlyStats.map((monthData) => (
-            <MonthTile
-              key={monthData.month}
-              month={monthNames[monthData.month]}
-              stats={monthData}
-              onClick={() => navigate(`/month/${currentYear}/${monthData.month}`)}
-              currency={currency}
+          {/* Stats Bar */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard 
+              label="Total P&L" 
+              value={formatCompactCurrency(totalPL, currency)}
+              color={totalPL >= 0 ? 'profit' : 'loss'}
             />
-          ))}
+            <StatCard 
+              label="Trades" 
+              value={totalTrades}
+            />
+            <StatCard 
+              label="Win Rate" 
+              value={`${overallWinRate}%`}
+              color={overallWinRate >= 50 ? 'profit' : 'loss'}
+            />
+            <StatCard 
+              label="W/L" 
+              value={`${totalWins}/${totalLosses}`}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Empty State */}
-      {totalTrades === 0 && (
-        <div className="card text-center py-12">
-          <div className="text-4xl mb-4">📊</div>
-          <h3 className="text-xl font-semibold mb-2">No trades yet</h3>
-          <p className="text-text-secondary mb-4">
-            Start logging your trades to track your performance
-          </p>
-          <p className="text-sm text-text-tertiary">
-            Use the navigation above to add tags and start tracking
-          </p>
+        {/* Monthly Tiles */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Monthly Breakdown</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {yearlyStats.map((monthData) => (
+              <MonthTile
+                key={monthData.month}
+                month={monthNames[monthData.month]}
+                stats={monthData}
+                onClick={() => navigate(`/month/${currentYear}/${monthData.month}`)}
+                currency={currency}
+              />
+            ))}
+          </div>
         </div>
-      )}
-    </div>
+
+        {/* Empty State */}
+        {totalTrades === 0 && (
+          <div className="card text-center py-12">
+            <p className="text-text-secondary mb-4">
+              No trades yet. Start logging your trades!
+            </p>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 
@@ -147,6 +146,19 @@ const MonthTile = ({ month, stats, onClick, currency }) => {
   const winRate = stats.tradeCount > 0 
     ? Math.round((stats.winCount / stats.tradeCount) * 100) 
     : 0;
+  
+  const lossRate = 100 - winRate;
+
+  // Calculate circle strokes for donut chart
+  const radius = 16;
+  const circumference = 2 * Math.PI * radius;
+  
+  // Win arc (green)
+  const winStrokeDasharray = `${(winRate / 100) * circumference} ${circumference}`;
+  
+  // Loss arc (red) - starts where win arc ends
+  const lossStrokeDasharray = `${(lossRate / 100) * circumference} ${circumference}`;
+  const lossStrokeDashoffset = -((winRate / 100) * circumference);
 
   return (
     <div
@@ -160,28 +172,47 @@ const MonthTile = ({ month, stats, onClick, currency }) => {
         {formatCompactCurrency(stats.totalPL, currency)}
       </div>
       
-      {/* Mini Donut Chart Placeholder */}
+      {/* Donut Chart - FIXED to show red portion */}
       <div className="flex items-center justify-center mb-2">
         <div className="relative w-16 h-16">
           <svg viewBox="0 0 36 36" className="transform -rotate-90">
+            {/* Background circle (gray) */}
             <circle
               cx="18"
               cy="18"
               r="16"
               fill="none"
-              stroke="#ef4444"
+              stroke="#374151"
               strokeWidth="4"
-              strokeDasharray={`${100 - winRate} ${winRate}`}
+              opacity="0.2"
             />
-            <circle
-              cx="18"
-              cy="18"
-              r="16"
-              fill="none"
-              stroke="#10b981"
-              strokeWidth="4"
-              strokeDasharray={`${winRate} ${100 - winRate}`}
-            />
+            
+            {/* Loss portion (red) - shows when win rate < 100% */}
+            {lossRate > 0 && (
+              <circle
+                cx="18"
+                cy="18"
+                r="16"
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth="4"
+                strokeDasharray={lossStrokeDasharray}
+                strokeDashoffset={lossStrokeDashoffset}
+              />
+            )}
+            
+            {/* Win portion (green) */}
+            {winRate > 0 && (
+              <circle
+                cx="18"
+                cy="18"
+                r="16"
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="4"
+                strokeDasharray={winStrokeDasharray}
+              />
+            )}
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-sm font-semibold">{winRate}%</span>
