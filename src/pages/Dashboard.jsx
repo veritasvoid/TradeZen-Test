@@ -51,83 +51,86 @@ const Dashboard = () => {
         <div>
           <h2 className="text-2xl font-bold mb-6">{currentYear} Overview</h2>
           
-          {/* Chart + Stats Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* CHART - Takes 3 columns, TALLER */}
-            <div className="lg:col-span-3 card h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 40, right: 20, left: 20, bottom: 20 }}>
-                  <XAxis 
-                    dataKey="month" 
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#9ca3af', fontSize: 13, fontWeight: 600 }}
-                  />
-                  <YAxis 
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#9ca3af', fontSize: 12 }}
-                    tickFormatter={(value) => `${currency}${value}`}
-                  />
-                  <Bar dataKey="pl" radius={[8, 8, 0, 0]}>
-                    {chartData.map((entry, index) => (
-                      <Cell 
-                        key={index}
-                        fill={entry.pl >= 0 ? '#10b981' : '#ef4444'}
-                      />
-                    ))}
-                    {/* P&L VALUES ON TOP OF BARS */}
-                    <LabelList 
-                      dataKey="pl" 
-                      position="top" 
-                      formatter={(value) => `${currency}${value}`}
-                      style={{ 
-                        fill: '#e5e7eb', 
-                        fontSize: 12, 
-                        fontWeight: 700 
-                      }}
+          {/* Main Layout: Tag Performance Left, Chart + Stats Right */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            {/* TAG PERFORMANCE - Left sidebar */}
+            {tagPerformance.length > 0 && (
+              <div className="xl:col-span-3 space-y-3">
+                <h3 className="text-lg font-bold mb-4">Strategy Performance</h3>
+                <div className="space-y-3">
+                  {tagPerformance.map(tag => (
+                    <TagPerformanceCard key={tag.tagId} tag={tag} currency={currency} />
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* CHART + STATS - Right side */}
+            <div className={`${tagPerformance.length > 0 ? 'xl:col-span-9' : 'xl:col-span-12'} grid grid-cols-1 lg:grid-cols-4 gap-6`}>
+              {/* CHART - Takes 3 columns */}
+              <div className="lg:col-span-3 card h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 40, right: 20, left: 20, bottom: 20 }}>
+                    <XAxis 
+                      dataKey="month" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#9ca3af', fontSize: 13, fontWeight: 600 }}
                     />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+                    <YAxis 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#9ca3af', fontSize: 12 }}
+                      tickFormatter={(value) => `${currency}${value}`}
+                    />
+                    <Bar dataKey="pl" radius={[8, 8, 0, 0]}>
+                      {chartData.map((entry, index) => (
+                        <Cell 
+                          key={index}
+                          fill={entry.pl >= 0 ? '#10b981' : '#ef4444'}
+                        />
+                      ))}
+                      {/* P&L VALUES ON TOP OF BARS */}
+                      <LabelList 
+                        dataKey="pl" 
+                        position="top" 
+                        formatter={(value) => `${currency}${value}`}
+                        style={{ 
+                          fill: '#e5e7eb', 
+                          fontSize: 12, 
+                          fontWeight: 700 
+                        }}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
 
-            {/* STATS - Vertical stack on right side */}
-            <div className="lg:col-span-1 space-y-3">
-              <StatCard 
-                label="Total P&L" 
-                value={formatCompactCurrency(totalPL, currency)}
-                color={totalPL >= 0 ? 'profit' : 'loss'}
-                large
-              />
-              <StatCard 
-                label="Trades" 
-                value={totalTrades}
-              />
-              <StatCard 
-                label="Win Rate" 
-                value={`${overallWinRate}%`}
-                color={overallWinRate >= 50 ? 'profit' : 'loss'}
-              />
-              <StatCard 
-                label="W/L" 
-                value={`${totalWins}/${totalLosses}`}
-              />
+              {/* STATS - Vertical stack */}
+              <div className="lg:col-span-1 space-y-3">
+                <StatCard 
+                  label="Total P&L" 
+                  value={formatCompactCurrency(totalPL, currency)}
+                  color={totalPL >= 0 ? 'profit' : 'loss'}
+                  large
+                />
+                <StatCard 
+                  label="Trades" 
+                  value={totalTrades}
+                />
+                <StatCard 
+                  label="Win Rate" 
+                  value={`${overallWinRate}%`}
+                  color={overallWinRate >= 50 ? 'profit' : 'loss'}
+                />
+                <StatCard 
+                  label="W/L" 
+                  value={`${totalWins}/${totalLosses}`}
+                />
+              </div>
             </div>
           </div>
         </div>
-
-        {/* Tag Performance Analytics */}
-        {tagPerformance.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-bold mb-6">Strategy Performance</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {tagPerformance.map(tag => (
-                <TagPerformanceCard key={tag.tagId} tag={tag} currency={currency} />
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Monthly Tiles */}
         <div>
@@ -222,7 +225,7 @@ const TagPerformanceCard = ({ tag, currency }) => {
             <div className="font-bold text-sm" style={{ color: tag.tagColor }}>
               {tag.tagName}
             </div>
-            <div className="text-xs text-text-tertiary">{tag.trades} trades</div>
+            <div className="text-xs text-text-primary font-medium">{tag.trades} trades</div>
           </div>
         </div>
         {isPositive ? (
@@ -236,20 +239,20 @@ const TagPerformanceCard = ({ tag, currency }) => {
         {formatCompactCurrency(tag.totalPL, currency)}
       </div>
       
-      <div className="flex items-center justify-between text-xs">
+      <div className="flex items-center justify-between text-xs mb-1">
         <div>
-          <span className="text-text-tertiary">Win Rate: </span>
+          <span className="text-text-primary">Win Rate: </span>
           <span className={`font-bold ${tag.winRate >= 50 ? 'text-profit' : 'text-loss'}`}>
             {tag.winRate}%
           </span>
         </div>
-        <div className="text-text-tertiary">
+        <div className="text-text-primary font-medium">
           {tag.wins}W/{tag.losses}L
         </div>
       </div>
       
-      <div className="mt-2 text-xs text-text-tertiary">
-        Avg: <span className="font-semibold">{formatCompactCurrency(tag.avgPL, currency)}</span>
+      <div className="text-xs text-text-primary">
+        Avg: <span className="font-bold">{formatCompactCurrency(tag.avgPL, currency)}</span>
       </div>
     </div>
   );
