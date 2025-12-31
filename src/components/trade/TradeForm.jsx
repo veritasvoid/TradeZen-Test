@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { Camera, Upload, X } from 'lucide-react';
 import { Modal } from '@/components/shared/Modal';
 import { Button } from '@/components/shared/Button';
-import { useAddTrade } from '@/hooks/useTrades';
+import { useAddTrade, useUpdateTrade } from '@/hooks/useTrades';
 import { useToast } from '@/components/shared/Toast';
 import { generateId } from '@/lib/utils';
 import { QUICK_AMOUNTS } from '@/lib/constants';
@@ -12,6 +12,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 export const TradeForm = ({ defaultDate = null, trade = null, tags = [], onClose }) => {
   const { showToast } = useToast();
   const addTrade = useAddTrade();
+  const updateTrade = useUpdateTrade();
   const currency = useSettingsStore(state => state.settings.currency);
   
   const isEditing = !!trade;
@@ -40,7 +41,9 @@ export const TradeForm = ({ defaultDate = null, trade = null, tags = [], onClose
   });
   
   const [screenshot, setScreenshot] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(trade?.driveImageId ? `drive://${trade.driveImageId}` : null);
+  const [previewUrl, setPreviewUrl] = useState(
+    trade?.driveImageId ? googleAPI.getImageUrl(trade.driveImageId) : null
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const amount = watch('amount');
@@ -86,20 +89,39 @@ export const TradeForm = ({ defaultDate = null, trade = null, tags = [], onClose
       
       const tag = allTags.find(t => t.tagId === data.tagId) || allTags[0];
       
-      const tradeData = {
-        tradeId: trade?.tradeId || generateId(),
-        date: data.date,
-        time: data.time,
-        amount: parseFloat(data.amount),
-        tagId: tag.tagId,
-        tagName: tag.name,
-        tagColor: tag.color,
-        tagEmoji: tag.emoji,
-        screenshot: screenshot,
-        notes: data.notes
-      };
-      
-      await addTrade.mutateAsync(tradeData);
+      if (isEditing) {
+        // UPDATE existing trade
+        await updateTrade.mutateAsync({
+          tradeId: trade.tradeId,
+          updates: {
+            date: data.date,
+            time: data.time,
+            amount: parseFloat(data.amount),
+            tagId: tag.tagId,
+            tagName: tag.name,
+            tagColor: tag.color,
+            tagEmoji: tag.emoji,
+            screenshot: screenshot, // Only if new screenshot selected
+            notes: data.notes
+          }
+        });
+      } else {
+        // ADD new trade
+        const tradeData = {
+          tradeId: generateId(),
+          date: data.date,
+          time: data.time,
+          amount: parseFloat(data.amount),
+          tagId: tag.tagId,
+          tagName: tag.name,
+          tagColor: tag.color,
+          tagEmoji: tag.emoji,
+          screenshot: screenshot,
+          notes: data.notes
+        };
+        
+        await addTrade.mutateAsync(tradeData);
+      }
       
       showToast(
         isEditing ? 'Trade updated' : 'Trade added',
