@@ -1,1 +1,0 @@
-import{y as n,D as r}from"./index-C41HpDc0.js";const a=n(e=>({settings:r,updateSettings:t=>{e(s=>({settings:{...s.settings,...t}}))},getCurrencySymbol:()=>a.getState().settings.currency}));export{a as u};
