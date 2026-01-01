@@ -6,6 +6,7 @@ import { Loading } from '@/components/shared/Loading';
 import { calculateYearlyStats, formatCompactCurrency } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, LabelList } from 'recharts';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -58,20 +59,14 @@ const Dashboard = () => {
     <div className="h-[calc(100vh-80px)] overflow-y-auto">
       <div className="grid grid-cols-12 h-full">
         
-        {/* LEFT SIDEBAR - Performance Metrics */}
-        <div className="col-span-2 bg-slate-900/50 border-r border-slate-700/50 p-6 space-y-6">
+        {/* LEFT SIDEBAR - Performance + Tags */}
+        <div className="col-span-2 bg-slate-900/50 border-r border-slate-700/50 p-6 space-y-6 overflow-y-auto">
           <div>
             <h3 className="text-slate-400 text-xs uppercase tracking-wider mb-4 font-semibold">Performance</h3>
             
             <div className="space-y-6">
-              {/* Total Trades */}
-              <MetricBox
-                label="Total Trades"
-                sublabel="Count"
-                value={totalTrades}
-              />
-
-              {/* Win Rate with Donut */}
+              <MetricBox label="Total Trades" sublabel="Count" value={totalTrades} />
+              
               <div>
                 <div className="text-slate-400 text-xs mb-3">Win Rate</div>
                 <div className="flex items-center justify-center mb-4">
@@ -79,54 +74,33 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Avg P&L per Trade */}
-              <MetricBox
-                label="Avg P&L/Trade"
-                value={formatCompactCurrency(avgPLPerTrade, currency)}
-                valueColor={avgPLPerTrade >= 0 ? 'text-emerald-400' : 'text-red-400'}
-              />
-
-              {/* Avg Winner */}
-              <MetricBox
-                label="Avg Winner"
-                value={formatCompactCurrency(avgWinner, currency)}
-                valueColor="text-emerald-400"
-              />
-
-              {/* Avg Loser */}
-              <MetricBox
-                label="Avg Loser"
-                value={formatCompactCurrency(avgLoser, currency)}
-                valueColor="text-red-400"
-              />
-
-              {/* Best Trade */}
-              <MetricBox
-                label="Best Trade"
-                value={formatCompactCurrency(bestTrade, currency)}
-                valueColor="text-emerald-400"
-                highlight="emerald"
-              />
-
-              {/* Worst Trade */}
-              <MetricBox
-                label="Worst Trade"
-                value={formatCompactCurrency(worstTrade, currency)}
-                valueColor="text-red-400"
-                highlight="red"
-              />
+              <MetricBox label="Avg P&L/Trade" value={formatCompactCurrency(avgPLPerTrade, currency)} valueColor={avgPLPerTrade >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+              <MetricBox label="Avg Winner" value={formatCompactCurrency(avgWinner, currency)} valueColor="text-emerald-400" />
+              <MetricBox label="Avg Loser" value={formatCompactCurrency(avgLoser, currency)} valueColor="text-red-400" />
+              <MetricBox label="Best Trade" value={formatCompactCurrency(bestTrade, currency)} valueColor="text-emerald-400" highlight="emerald" />
+              <MetricBox label="Worst Trade" value={formatCompactCurrency(worstTrade, currency)} valueColor="text-red-400" highlight="red" />
             </div>
           </div>
+
+          {/* Tag Performance */}
+          {tagPerformance.length > 0 && (
+            <div className="pt-6 border-t border-slate-700/50">
+              <h3 className="text-slate-400 text-xs uppercase tracking-wider mb-4 font-semibold">Strategy Performance</h3>
+              <div className="space-y-3">
+                {tagPerformance.map(tag => (
+                  <TagCard key={tag.tagId} tag={tag} currency={currency} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* CENTER - Chart */}
         <div className="col-span-8 flex flex-col">
-          {/* Chart Title */}
           <div className="border-b border-slate-700/50 px-8 py-4">
             <h2 className="text-xl font-bold text-center">Monthly P&L</h2>
           </div>
 
-          {/* Chart */}
           <div className="flex-1 p-8">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 40, right: 30, left: 30, bottom: 30 }}>
@@ -147,9 +121,6 @@ const Dashboard = () => {
                     <Cell 
                       key={index}
                       fill={entry.pl >= 0 ? '#10b981' : '#ef4444'}
-                      opacity={entry.isCurrentMonth ? 1 : 0.7}
-                      stroke={entry.isCurrentMonth ? '#3b82f6' : 'none'}
-                      strokeWidth={entry.isCurrentMonth ? 2 : 0}
                     />
                   ))}
                   <LabelList 
@@ -163,7 +134,6 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </div>
 
-          {/* Monthly Breakdown Grid */}
           <div className="border-t border-slate-700/50 p-6">
             <div className="grid grid-cols-6 gap-3">
               {yearlyStats.map((monthData) => (
@@ -184,26 +154,8 @@ const Dashboard = () => {
         <div className="col-span-2 bg-slate-900/50 border-l border-slate-700/50 p-6">
           <div className="space-y-6">
             <div>
-              <div className="text-slate-400 text-sm mb-2">{currentYear}</div>
-              <div className="bg-slate-800/50 rounded-lg p-4">
-                <div className="text-slate-400 text-xs mb-1">Starting Balance:</div>
-                <input
-                  type="number"
-                  value={startingBalance}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value) || 0;
-                    useSettingsStore.getState().updateSettings({ startingBalance: val });
-                  }}
-                  className="bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-sm w-full text-right font-mono"
-                />
-              </div>
+              <div className="text-slate-400 text-sm mb-4">{currentYear}</div>
             </div>
-
-            <SummaryBox
-              label={`Yearly P&L (${currentYear})`}
-              value={formatCompactCurrency(totalPL, currency)}
-              valueColor={totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}
-            />
 
             <SummaryBox
               label="Account Balance"
@@ -212,11 +164,11 @@ const Dashboard = () => {
               large
             />
 
-            {tagPerformance.length > 0 && (
-              <div className="pt-4 border-t border-slate-700/50">
-                <div className="text-slate-400 text-xs uppercase tracking-wider mb-3">No trades with tags for this year.</div>
-              </div>
-            )}
+            <SummaryBox
+              label={`Yearly P&L`}
+              value={formatCompactCurrency(totalPL, currency)}
+              valueColor={totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}
+            />
           </div>
         </div>
       </div>
@@ -270,6 +222,43 @@ const MetricBox = ({ label, sublabel, value, valueColor = 'text-white', highligh
       <div className="text-slate-400 text-xs mb-1">{label}</div>
       {sublabel && <div className="text-slate-500 text-[10px] mb-2">{sublabel}</div>}
       <div className={`text-2xl font-bold ${valueColor}`}>{value}</div>
+    </div>
+  );
+};
+
+const TagCard = ({ tag, currency }) => {
+  const isPositive = tag.totalPL >= 0;
+  
+  return (
+    <div className="bg-slate-800/30 rounded-lg p-3 hover:bg-slate-800/50 transition-all">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-2xl">{tag.tagEmoji}</span>
+        <div className="flex-1">
+          <div className="text-sm font-bold" style={{ color: tag.tagColor }}>
+            {tag.tagName}
+          </div>
+        </div>
+        {isPositive ? <TrendingUp size={16} className="text-emerald-400" /> : <TrendingDown size={16} className="text-red-400" />}
+      </div>
+      
+      <div className={`text-xl font-bold mb-2 ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+        {formatCompactCurrency(tag.totalPL, currency)}
+      </div>
+      
+      <div className="space-y-1 text-[10px] text-slate-400">
+        <div className="flex justify-between">
+          <span>Trades:</span>
+          <span className="font-bold text-white">{tag.trades}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Win Rate:</span>
+          <span className={`font-bold ${tag.winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>{tag.winRate}%</span>
+        </div>
+        <div className="flex justify-between">
+          <span>W/L:</span>
+          <span className="font-bold text-white">{tag.wins}/{tag.losses}</span>
+        </div>
+      </div>
     </div>
   );
 };
