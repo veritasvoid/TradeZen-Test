@@ -45,12 +45,11 @@ const MonthView = () => {
 
   const handleDayClick = (day) => {
     const dayTrades = tradesByDay[day] || [];
-    if (dayTrades.length === 0) {
-      // No trades, open add modal
-      const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      setSelectedDate(dateStr);
-      setShowAddModal(true);
-    }
+    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    // Always allow adding trades, regardless of how many exist
+    setSelectedDate(dateStr);
+    setShowAddModal(true);
   };
 
   const handleEditTrade = (trade) => {
@@ -253,15 +252,14 @@ const DayCell = ({ day, trades, dayPL, isToday, currency, onClick, onEditTrade }
             </div>
           )}
 
-          {/* Click to view trades */}
+          {/* Click to add more trades */}
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (trades.length === 1) {
-                onEditTrade(trades[0]);
-              }
+              onClick();
             }}
             className="absolute inset-0 opacity-0 hover:opacity-5 bg-white transition-opacity rounded-lg"
+            title="Click to add trade"
           />
         </>
       )}
