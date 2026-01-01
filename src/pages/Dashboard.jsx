@@ -10,13 +10,22 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { data: trades = [], isLoading } = useTrades();
+  const { data: allTrades = [], isLoading } = useTrades();
   const { data: tags = [], isLoading: tagsLoading } = useTags();
   const currency = useSettingsStore(state => state.settings.currency);
   const startingBalance = useSettingsStore(state => state.settings.startingBalance || 0);
   
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth();
+  
+  // FIX #2: Filter trades to ONLY current year
+  const trades = allTrades.filter(trade => {
+    const tradeYear = parseInt(trade.date.split('-')[0]);
+    return tradeYear === currentYear;
+  });
+  
+  console.log(`📅 Dashboard showing ${currentYear} trades:`, trades.length, 'of', allTrades.length, 'total');
+  
   const yearlyStats = calculateYearlyStats(trades, currentYear);
 
   const totalPL = yearlyStats.reduce((sum, m) => sum + m.totalPL, 0);
