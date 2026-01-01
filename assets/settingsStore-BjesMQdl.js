@@ -1,1 +1,0 @@
-import{D as n,E as r}from"./index-DvESeNnY.js";const a=n(e=>({settings:r,updateSettings:t=>{e(s=>({settings:{...s.settings,...t}}))},getCurrencySymbol:()=>a.getState().settings.currency}));export{a as u};
