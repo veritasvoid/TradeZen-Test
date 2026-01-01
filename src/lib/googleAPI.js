@@ -9,7 +9,7 @@ import {
   SHEETS
 } from './constants';
 
-// Google API Client with auto token refresh
+// Google API Client with auto token refresh and robust sheet finding
 class GoogleAPIClient {
   constructor() {
     this.accessToken = null;
@@ -22,14 +22,13 @@ class GoogleAPIClient {
   // Initialize Google API
   async init() {
     return new Promise((resolve) => {
-      // Load Google API scripts
       if (!window.google) {
         const script1 = document.createElement('script');
         script1.src = 'https://apis.google.com/js/api.js';
         script1.onload = () => {
           window.gapi.load('client', async () => {
             await window.gapi.client.init({
-              apiKey: '', // We don't need API key, using OAuth
+              apiKey: '',
               discoveryDocs: [
                 'https://sheets.googleapis.com/$discovery/rest?version=v4',
                 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
@@ -47,7 +46,7 @@ class GoogleAPIClient {
           this.tokenClient = window.google.accounts.oauth2.initTokenClient({
             client_id: GOOGLE_CLIENT_ID,
             scope: GOOGLE_SCOPES,
-            callback: '', // Will be set during sign-in
+            callback: '',
           });
           this.gisInited = true;
           if (this.gapiInited) resolve();
@@ -59,14 +58,12 @@ class GoogleAPIClient {
     });
   }
 
-  // Refresh token automatically
   async refreshToken() {
     return new Promise((resolve, reject) => {
       try {
         this.tokenClient.callback = async (resp) => {
           if (resp.error !== undefined) {
             console.error('Token refresh failed:', resp.error);
-            // Token refresh failed, user needs to sign in again
             this.signOut();
             window.location.reload();
             reject(resp);
@@ -78,14 +75,10 @@ class GoogleAPIClient {
           localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, this.accessToken);
           
           console.log('✅ Token refreshed successfully');
-          
-          // Schedule next refresh in 50 minutes (before 1 hour expiry)
           this.scheduleTokenRefresh();
-          
           resolve(resp);
         };
 
-        // Request new token silently (no popup)
         this.tokenClient.requestAccessToken({ prompt: '' });
       } catch (err) {
         console.error('Token refresh error:', err);
@@ -94,15 +87,12 @@ class GoogleAPIClient {
     });
   }
 
-  // Schedule automatic token refresh
   scheduleTokenRefresh() {
-    // Clear existing timer
     if (this.refreshTimer) {
       clearTimeout(this.refreshTimer);
     }
     
-    // Refresh token every 50 minutes (tokens expire at 60 minutes)
-    const refreshInterval = 50 * 60 * 1000; // 50 minutes in milliseconds
+    const refreshInterval = 50 * 60 * 1000;
     
     this.refreshTimer = setTimeout(() => {
       console.log('🔄 Auto-refreshing token...');
@@ -114,7 +104,6 @@ class GoogleAPIClient {
     console.log('⏰ Token refresh scheduled for 50 minutes from now');
   }
 
-  // Sign in with Google
   async signIn() {
     return new Promise((resolve, reject) => {
       try {
@@ -127,21 +116,15 @@ class GoogleAPIClient {
           window.gapi.client.setToken({ access_token: this.accessToken });
           localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, this.accessToken);
           
-          // Start auto-refresh cycle
           this.scheduleTokenRefresh();
-          
           resolve(resp);
         };
 
-        // Check if already have a token
         const savedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
         if (savedToken) {
           this.accessToken = savedToken;
           window.gapi.client.setToken({ access_token: savedToken });
-          
-          // Start auto-refresh for existing token
           this.scheduleTokenRefresh();
-          
           resolve({ access_token: savedToken });
         } else {
           this.tokenClient.requestAccessToken({ prompt: 'consent' });
@@ -152,9 +135,7 @@ class GoogleAPIClient {
     });
   }
 
-  // Sign out
   signOut() {
-    // Clear refresh timer
     if (this.refreshTimer) {
       clearTimeout(this.refreshTimer);
       this.refreshTimer = null;
@@ -162,99 +143,144 @@ class GoogleAPIClient {
     
     this.accessToken = null;
     localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-    // DON'T clear sheet ID and folder ID on sign out!
-    // Keep them so we reuse same sheet
+    // Keep sheet/folder IDs so we reuse them
     window.gapi.client.setToken(null);
   }
 
-  // Check if signed in
   isSignedIn() {
     return !!this.accessToken || !!localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
   }
 
-  // Get or create spreadsheet - FIXED to search Drive first
+  // IMPROVED: More robust sheet finding
   async getOrCreateSpreadsheet() {
-    // 1. Check localStorage first
+    console.log('🔍 Looking for TradeZen spreadsheet...');
+    
+    // Step 1: Try localStorage
     const savedSheetId = localStorage.getItem(STORAGE_KEYS.SHEET_ID);
     
     if (savedSheetId) {
+      console.log('📋 Found sheet ID in localStorage:', savedSheetId);
       try {
-        await window.gapi.client.sheets.spreadsheets.get({
+        const sheet = await window.gapi.client.sheets.spreadsheets.get({
           spreadsheetId: savedSheetId
         });
+        console.log('✅ Sheet accessible:', sheet.result.properties.title);
         return savedSheetId;
       } catch (err) {
-        console.log('Saved sheet not accessible, searching Drive...');
+        console.warn('⚠️ Saved sheet not accessible:', err.result?.error?.message || err.message);
+        // Clear invalid ID
+        localStorage.removeItem(STORAGE_KEYS.SHEET_ID);
       }
     }
 
-    // 2. Search Google Drive for existing TradeZen sheet
+    // Step 2: Search ALL spreadsheets in Drive
+    console.log('🔍 Searching Google Drive for existing TradeZen sheets...');
     try {
       const response = await window.gapi.client.drive.files.list({
         q: `name='${SHEET_NAME}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,
-        fields: 'files(id, name)',
-        orderBy: 'createdTime desc'
+        fields: 'files(id, name, createdTime, modifiedTime)',
+        orderBy: 'modifiedTime desc', // Get most recently modified
+        spaces: 'drive'
       });
 
+      console.log('📊 Found sheets:', response.result.files?.length || 0);
+      
       if (response.result.files && response.result.files.length > 0) {
+        // Show all found sheets
+        response.result.files.forEach((file, idx) => {
+          console.log(`  ${idx + 1}. ${file.name} (ID: ${file.id}, Modified: ${file.modifiedTime})`);
+        });
+        
+        // Use the most recently modified one
         const existingSheetId = response.result.files[0].id;
-        console.log('Found existing TradeZen sheet, reusing it');
-        localStorage.setItem(STORAGE_KEYS.SHEET_ID, existingSheetId);
-        return existingSheetId;
+        console.log('✅ Using sheet:', existingSheetId);
+        
+        // Verify it has the right structure
+        try {
+          const sheetData = await window.gapi.client.sheets.spreadsheets.get({
+            spreadsheetId: existingSheetId
+          });
+          
+          const sheetNames = sheetData.result.sheets.map(s => s.properties.title);
+          console.log('📑 Sheet tabs:', sheetNames);
+          
+          // Check if it has the required tabs
+          const hasRequiredTabs = 
+            sheetNames.includes(SHEETS.TRADES) && 
+            sheetNames.includes(SHEETS.TAGS) && 
+            sheetNames.includes(SHEETS.SETTINGS);
+          
+          if (hasRequiredTabs) {
+            localStorage.setItem(STORAGE_KEYS.SHEET_ID, existingSheetId);
+            console.log('✅ Found valid TradeZen sheet, reusing it');
+            return existingSheetId;
+          } else {
+            console.warn('⚠️ Sheet missing required tabs:', sheetNames);
+          }
+        } catch (verifyErr) {
+          console.error('❌ Could not verify sheet structure:', verifyErr);
+        }
+      } else {
+        console.log('📭 No existing TradeZen sheets found');
       }
     } catch (err) {
-      console.log('Could not search Drive, creating new sheet');
+      console.error('❌ Drive search failed:', err.result?.error?.message || err.message);
     }
 
-    // 3. Create new spreadsheet only if none found
-    console.log('Creating new TradeZen sheet');
-    const response = await window.gapi.client.sheets.spreadsheets.create({
-      properties: {
-        title: SHEET_NAME
-      },
-      sheets: [
-        { 
-          properties: { 
-            title: SHEETS.TRADES,
-            gridProperties: {
-              rowCount: 1000,
-              columnCount: 12
-            }
-          } 
+    // Step 3: Create new sheet only if none found
+    console.log('📝 Creating new TradeZen spreadsheet...');
+    try {
+      const response = await window.gapi.client.sheets.spreadsheets.create({
+        properties: {
+          title: SHEET_NAME
         },
-        { 
-          properties: { 
-            title: SHEETS.TAGS,
-            gridProperties: {
-              rowCount: 1000,
-              columnCount: 5
-            }
-          } 
-        },
-        { 
-          properties: { 
-            title: SHEETS.SETTINGS,
-            gridProperties: {
-              rowCount: 1000,
-              columnCount: 2
-            }
-          } 
-        }
-      ]
-    });
+        sheets: [
+          { 
+            properties: { 
+              title: SHEETS.TRADES,
+              gridProperties: {
+                rowCount: 1000,
+                columnCount: 12
+              }
+            } 
+          },
+          { 
+            properties: { 
+              title: SHEETS.TAGS,
+              gridProperties: {
+                rowCount: 1000,
+                columnCount: 5
+              }
+            } 
+          },
+          { 
+            properties: { 
+              title: SHEETS.SETTINGS,
+              gridProperties: {
+                rowCount: 1000,
+                columnCount: 2
+              }
+            } 
+          }
+        ]
+      });
 
-    const sheetId = response.result.spreadsheetId;
-    const sheets = response.result.sheets;
-    
-    localStorage.setItem(STORAGE_KEYS.SHEET_ID, sheetId);
+      const sheetId = response.result.spreadsheetId;
+      const sheets = response.result.sheets;
+      
+      console.log('✅ Created new sheet:', sheetId);
+      localStorage.setItem(STORAGE_KEYS.SHEET_ID, sheetId);
 
-    // Initialize with headers
-    await this.initializeSheets(sheetId, sheets);
+      await this.initializeSheets(sheetId, sheets);
+      console.log('✅ Sheet initialized with headers');
 
-    return sheetId;
+      return sheetId;
+    } catch (createErr) {
+      console.error('❌ Failed to create sheet:', createErr);
+      throw createErr;
+    }
   }
 
-  // Initialize sheets with headers
   async initializeSheets(sheetId, sheets) {
     const tradesSheetId = sheets.find(s => s.properties.title === SHEETS.TRADES).properties.sheetId;
     const tagsSheetId = sheets.find(s => s.properties.title === SHEETS.TAGS).properties.sheetId;
@@ -330,13 +356,11 @@ class GoogleAPIClient {
     });
   }
 
-  // Get or create organized Drive folder structure
   async getOrCreateDriveFolder() {
     const savedFolderId = localStorage.getItem(STORAGE_KEYS.DRIVE_FOLDER_ID);
     
     if (savedFolderId) {
       try {
-        // Verify folder exists
         await window.gapi.client.drive.files.get({
           fileId: savedFolderId
         });
@@ -346,7 +370,6 @@ class GoogleAPIClient {
       }
     }
 
-    // Search for existing TradeZen folder
     const searchResponse = await window.gapi.client.drive.files.list({
       q: "name='TradeZen' and mimeType='application/vnd.google-apps.folder' and trashed=false",
       fields: 'files(id, name)'
@@ -357,7 +380,6 @@ class GoogleAPIClient {
     if (searchResponse.result.files && searchResponse.result.files.length > 0) {
       mainFolderId = searchResponse.result.files[0].id;
     } else {
-      // Create main TradeZen folder
       const mainFolder = await window.gapi.client.drive.files.create({
         resource: {
           name: 'TradeZen',
@@ -368,7 +390,6 @@ class GoogleAPIClient {
       mainFolderId = mainFolder.result.id;
     }
 
-    // Search for Screenshots subfolder
     const subSearchResponse = await window.gapi.client.drive.files.list({
       q: `name='Screenshots' and '${mainFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
       fields: 'files(id, name)'
@@ -379,7 +400,6 @@ class GoogleAPIClient {
     if (subSearchResponse.result.files && subSearchResponse.result.files.length > 0) {
       screenshotsFolderId = subSearchResponse.result.files[0].id;
     } else {
-      // Create Screenshots subfolder
       const screenshotsFolder = await window.gapi.client.drive.files.create({
         resource: {
           name: 'Screenshots',
@@ -395,18 +415,15 @@ class GoogleAPIClient {
     return screenshotsFolderId;
   }
 
-  // Upload image to Drive with better naming
   async uploadImage(imageBlob, filename) {
     const folderId = await this.getOrCreateDriveFolder();
     
-    // Extract date and time from filename if present
-    // Expected format: uuid_YYYY-MM-DD_HH-MM.jpg
     const parts = filename.split('_');
     let displayName = filename;
     
     if (parts.length >= 2) {
-      const date = parts[1]; // YYYY-MM-DD
-      const time = parts[2]?.replace('.jpg', ''); // HH-MM
+      const date = parts[1];
+      const time = parts[2]?.replace('.jpg', '');
       displayName = `Trade_${date}_${time || 'unknown'}.jpg`;
     }
     
@@ -432,7 +449,6 @@ class GoogleAPIClient {
     return data.id;
   }
 
-  // Get image URL from Drive
   getImageUrl(fileId) {
     return `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
   }
