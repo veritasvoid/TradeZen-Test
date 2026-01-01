@@ -26,8 +26,10 @@ const parseTradeRow = (row) => {
 
 // Fetch all trades
 const fetchTrades = async () => {
-  const sheetId = localStorage.getItem(STORAGE_KEYS.SHEET_ID);
-  if (!sheetId) return [];
+  // Use hardcoded sheet ID - guaranteed to work
+  const sheetId = '1ruzm5D-ofifAU7d5oRChBT7DAYFTlVLgULSsXvYEtXU';
+  
+  console.log('🔍 Fetching all trades from sheet:', sheetId);
 
   try {
     const response = await window.gapi.client.sheets.spreadsheets.values.get({
@@ -36,20 +38,45 @@ const fetchTrades = async () => {
     });
 
     const rows = response.result.values || [];
-    return rows.map(parseTradeRow).filter(Boolean);
+    console.log('📥 Received rows from sheet:', rows.length);
+    
+    const parsed = rows.map(parseTradeRow).filter(Boolean);
+    console.log('✅ Parsed trades:', parsed.length);
+    
+    return parsed;
   } catch (error) {
-    console.error('Failed to fetch trades:', error);
+    console.error('❌ Failed to fetch trades:', error);
     return [];
   }
 };
 
 // Fetch trades for specific month
+// Fetch trades for specific month
 const fetchMonthTrades = async (year, month) => {
+  console.log(`📅 Fetching trades for: ${year}-${month} (month is 0-indexed, so ${month} = ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month]})`);
+  
   const allTrades = await fetchTrades();
-  return allTrades.filter(trade => {
+  console.log(`📊 Total trades in sheet: ${allTrades.length}`);
+  
+  if (allTrades.length > 0) {
+    console.log('📋 All trade dates:', allTrades.map(t => t.date));
+  }
+  
+  const filtered = allTrades.filter(trade => {
     const [tradeYear, tradeMonth] = trade.date.split('-').map(Number);
-    return tradeYear === year && tradeMonth === month + 1;
+    const matches = tradeYear === year && tradeMonth === month + 1;
+    
+    if (!matches) {
+      console.log(`  ❌ Trade ${trade.date} doesn't match: tradeYear=${tradeYear} vs ${year}, tradeMonth=${tradeMonth} vs ${month + 1}`);
+    } else {
+      console.log(`  ✅ Trade ${trade.date} MATCHES!`);
+    }
+    
+    return matches;
   });
+  
+  console.log(`✅ Filtered to ${filtered.length} trades for ${year}-${month + 1}`);
+  return filtered;
 };
 
 // Add trade
