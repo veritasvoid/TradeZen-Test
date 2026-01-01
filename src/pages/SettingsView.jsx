@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trash2, AlertTriangle } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useClearAllData } from '@/hooks/useTrades';
@@ -10,12 +10,35 @@ const SettingsView = () => {
   const [showClearModal, setShowClearModal] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
 
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('tradezen-settings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        updateSettings(parsed);
+      } catch (e) {
+        console.error('Failed to parse saved settings:', e);
+      }
+    }
+  }, []);
+
+  const handleSettingChange = (updates) => {
+    // Update Zustand state
+    updateSettings(updates);
+    
+    // Save to localStorage
+    const newSettings = { ...settings, ...updates };
+    localStorage.setItem('tradezen-settings', JSON.stringify(newSettings));
+  };
+
   const handleClearData = async () => {
     setIsClearing(true);
     try {
       await clearAllData.mutateAsync();
-      alert('✅ All data cleared successfully! Your trades, tags, and settings have been reset.');
+      alert('✅ All data cleared successfully!');
       setShowClearModal(false);
+      window.location.reload();
     } catch (error) {
       alert('❌ Failed to clear data: ' + error.message);
     } finally {
@@ -27,6 +50,8 @@ const SettingsView = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" style={{ paddingTop: '100px' }}>
       <div className="max-w-3xl mx-auto p-6 space-y-6">
         
+        <h1 className="text-3xl font-black mb-6">Settings</h1>
+
         {/* Trading Settings */}
         <Section title="Trading Settings">
           <SettingRow label="Starting Balance">
@@ -35,7 +60,7 @@ const SettingsView = () => {
               <input
                 type="number"
                 value={settings.startingBalance || 0}
-                onChange={(e) => updateSettings({ startingBalance: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => handleSettingChange({ startingBalance: parseFloat(e.target.value) || 0 })}
                 className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 w-40 text-right font-mono focus:border-blue-500 focus:outline-none"
                 step="0.01"
                 min="0"
@@ -46,7 +71,7 @@ const SettingsView = () => {
           <SettingRow label="Currency">
             <select
               value={settings.currency}
-              onChange={(e) => updateSettings({ currency: e.target.value })}
+              onChange={(e) => handleSettingChange({ currency: e.target.value })}
               className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
             >
               {CURRENCIES.map(curr => (
@@ -61,18 +86,14 @@ const SettingsView = () => {
         {/* Appearance */}
         <Section title="Appearance">
           <SettingRow label="Theme">
-            <div className="text-slate-400 text-sm">
-              Dark (Always On)
-            </div>
+            <div className="text-slate-400 text-sm">Dark (Always On)</div>
           </SettingRow>
         </Section>
 
         {/* Data Management */}
         <Section title="Data Management">
           <SettingRow label="Storage">
-            <div className="text-slate-400 text-sm">
-              Google Sheets & Drive
-            </div>
+            <div className="text-slate-400 text-sm">Google Sheets & Drive</div>
           </SettingRow>
 
           <SettingRow label="Clear All Data">
@@ -104,7 +125,7 @@ const SettingsView = () => {
         </Section>
       </div>
 
-      {/* Clear Data Confirmation Modal */}
+      {/* Clear Data Modal */}
       {showClearModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-slate-900 rounded-2xl border border-red-500/50 max-w-md w-full p-6">
@@ -115,9 +136,7 @@ const SettingsView = () => {
               <h3 className="text-xl font-black">Clear All Data?</h3>
             </div>
 
-            <p className="text-slate-300 mb-2">
-              This will permanently delete:
-            </p>
+            <p className="text-slate-300 mb-2">This will permanently delete:</p>
             <ul className="text-slate-400 text-sm space-y-1 mb-6 ml-4">
               <li>• All trades</li>
               <li>• All tags/strategies</li>
@@ -167,9 +186,7 @@ const SettingsView = () => {
 const Section = ({ title, children }) => (
   <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
     <h2 className="text-lg font-bold mb-4 text-center">{title}</h2>
-    <div className="space-y-4">
-      {children}
-    </div>
+    <div className="space-y-4">{children}</div>
   </div>
 );
 
