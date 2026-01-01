@@ -19,8 +19,22 @@ export const TopNav = () => {
       setScrolled(window.scrollY > 20);
     };
     
+    const handleMouseMove = (e) => {
+      // Show nav when mouse is in top 100px of screen
+      if (e.clientY < 100) {
+        setIsVisible(true);
+      } else if (e.clientY > 150) {
+        setIsVisible(false);
+      }
+    };
+    
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('mousemove', handleMouseMove);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
   }, []);
 
   return (
@@ -29,8 +43,6 @@ export const TopNav = () => {
         fixed top-0 left-0 right-0 z-50 transition-all duration-300
         ${isVisible || scrolled ? 'translate-y-0 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700/50 shadow-xl' : '-translate-y-full bg-transparent'}
       `}
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
     >
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-20">
