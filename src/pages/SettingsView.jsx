@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Trash2, AlertTriangle } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { useClearAllData } from '@/hooks/useTrades';
-import { CURRENCIES } from '@/lib/constants';
+import { CURRENCIES, SHEETS } from '@/lib/constants';
 
 const SettingsView = () => {
   const { settings, updateSettings } = useSettingsStore();
-  const clearAllData = useClearAllData();
+  const queryClient = useQueryClient();
   const [showClearModal, setShowClearModal] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
 
@@ -24,22 +24,44 @@ const SettingsView = () => {
   }, []);
 
   const handleSettingChange = (updates) => {
-    // Update Zustand state
     updateSettings(updates);
-    
-    // Save to localStorage
     const newSettings = { ...settings, ...updates };
     localStorage.setItem('tradezen-settings', JSON.stringify(newSettings));
   };
 
   const handleClearData = async () => {
     setIsClearing(true);
+    const sheetId = '1ruzm5D-ofifAU7d5oRChBT7DAYFTlVLgULSsXvYEtXU';
+    
     try {
-      await clearAllData.mutateAsync();
+      // Clear Trades
+      await window.gapi.client.sheets.spreadsheets.values.clear({
+        spreadsheetId: sheetId,
+        range: `${SHEETS.TRADES}!A2:L`
+      });
+
+      // Clear Tags
+      await window.gapi.client.sheets.spreadsheets.values.clear({
+        spreadsheetId: sheetId,
+        range: `${SHEETS.TAGS}!A2:E`
+      });
+
+      // Clear Settings
+      await window.gapi.client.sheets.spreadsheets.values.clear({
+        spreadsheetId: sheetId,
+        range: `${SHEETS.SETTINGS}!A2:B`
+      });
+
+      // Clear cache
+      queryClient.invalidateQueries({ queryKey: ['trades'] });
+      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      localStorage.removeItem('tradezen-settings');
+
       alert('✅ All data cleared successfully!');
       setShowClearModal(false);
       window.location.reload();
     } catch (error) {
+      console.error('Clear failed:', error);
       alert('❌ Failed to clear data: ' + error.message);
     } finally {
       setIsClearing(false);
