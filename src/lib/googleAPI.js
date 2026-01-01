@@ -9,6 +9,9 @@ import {
   SHEETS
 } from './constants';
 
+// HARDCODED SHEET ID - always use the same sheet across all devices
+const MASTER_SHEET_ID = '1ruzm5D-ofifAU7d5oRChBT7DAYFTlVLgULSsXvYEtXU';
+
 class GoogleAPIClient {
   constructor() {
     this.accessToken = null;
@@ -16,7 +19,6 @@ class GoogleAPIClient {
     this.gapiInited = false;
     this.gisInited = false;
     this.refreshTimer = null;
-    this.userEmail = null;
   }
 
   async init() {
@@ -57,28 +59,6 @@ class GoogleAPIClient {
     });
   }
 
-  // Validate if token actually works
-  async validateToken(token) {
-    try {
-      const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        this.userEmail = data.email;
-        console.log('✅ Token valid. Signed in as:', this.userEmail);
-        return true;
-      } else {
-        console.log('❌ Token invalid (status:', response.status + ')');
-        return false;
-      }
-    } catch (err) {
-      console.log('❌ Token validation failed:', err.message);
-      return false;
-    }
-  }
-
   async refreshToken() {
     return new Promise((resolve, reject) => {
       try {
@@ -94,8 +74,6 @@ class GoogleAPIClient {
           this.accessToken = resp.access_token;
           window.gapi.client.setToken({ access_token: this.accessToken });
           localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, this.accessToken);
-          
-          await this.validateToken(this.accessToken);
           
           console.log('✅ Token refreshed');
           this.scheduleTokenRefresh();
@@ -130,8 +108,11 @@ class GoogleAPIClient {
   async signIn() {
     return new Promise((resolve, reject) => {
       try {
+        window.gapi.client.setToken(null);
+        
         this.tokenClient.callback = async (resp) => {
           if (resp.error !== undefined) {
+            console.error('Sign-in error:', resp.error);
             reject(resp);
             return;
           }
@@ -140,38 +121,16 @@ class GoogleAPIClient {
           window.gapi.client.setToken({ access_token: this.accessToken });
           localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, this.accessToken);
           
-          await this.validateToken(this.accessToken);
+          console.log('✅ Signed in successfully');
           this.scheduleTokenRefresh();
           resolve(resp);
         };
 
-        // Check if we have a saved token
-        const savedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+        console.log('🔑 Requesting Google sign-in...');
+        this.tokenClient.requestAccessToken({ prompt: 'consent' });
         
-        if (savedToken) {
-          console.log('🔍 Found saved token, validating...');
-          
-          // Validate the saved token before using it
-          window.gapi.client.setToken({ access_token: savedToken });
-          
-          this.validateToken(savedToken).then(isValid => {
-            if (isValid) {
-              this.accessToken = savedToken;
-              this.scheduleTokenRefresh();
-              resolve({ access_token: savedToken });
-            } else {
-              // Token is invalid, clear it and force fresh sign-in
-              console.log('🔄 Saved token invalid, requesting fresh sign-in...');
-              localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-              this.tokenClient.requestAccessToken({ prompt: 'consent' });
-            }
-          });
-        } else {
-          // No saved token, request fresh sign-in
-          console.log('🔑 No saved token, requesting sign-in...');
-          this.tokenClient.requestAccessToken({ prompt: 'consent' });
-        }
       } catch (err) {
+        console.error('Sign-in failed:', err);
         reject(err);
       }
     });
@@ -184,7 +143,6 @@ class GoogleAPIClient {
     }
     
     this.accessToken = null;
-    this.userEmail = null;
     localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
     window.gapi.client.setToken(null);
   }
@@ -193,89 +151,35 @@ class GoogleAPIClient {
     return !!this.accessToken;
   }
 
+  // ALWAYS uses the hardcoded master sheet ID
   async getOrCreateSpreadsheet() {
-    console.log('🔍 Starting spreadsheet search...');
-    
-    // Search ALL TradeZen sheets in Drive
-    console.log('🔍 Searching Google Drive...');
+    console.log('📋 Using master sheet ID:', MASTER_SHEET_ID);
     
     try {
-      const response = await window.gapi.client.drive.files.list({
-        q: `name='${SHEET_NAME}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,
-        fields: 'files(id, name, createdTime, modifiedTime)',
-        orderBy: 'modifiedTime desc',
-        spaces: 'drive',
-        pageSize: 50
+      // Verify we can access it
+      const sheetData = await window.gapi.client.sheets.spreadsheets.get({
+        spreadsheetId: MASTER_SHEET_ID
       });
-
-      const sheets = response.result.files || [];
-      console.log(`📊 Found ${sheets.length} TradeZen spreadsheet(s)`);
       
-      if (sheets.length > 0) {
-        sheets.forEach((file, idx) => {
-          console.log(`  ${idx + 1}. ID: ${file.id}`);
-          console.log(`     Modified: ${file.modifiedTime}`);
-        });
-      }
+      console.log('✅ Master sheet accessible');
+      console.log('🔗 https://docs.google.com/spreadsheets/d/' + MASTER_SHEET_ID);
       
-      // Validate each sheet
-      for (const sheet of sheets) {
-        try {
-          console.log(`🔍 Checking sheet ${sheet.id}...`);
-          
-          const sheetData = await window.gapi.client.sheets.spreadsheets.get({
-            spreadsheetId: sheet.id
-          });
-          
-          const tabs = sheetData.result.sheets.map(s => s.properties.title);
-          console.log(`   Tabs: ${tabs.join(', ')}`);
-          
-          const hasRequiredTabs = 
-            tabs.includes(SHEETS.TRADES) && 
-            tabs.includes(SHEETS.TAGS);
-          
-          if (hasRequiredTabs) {
-            console.log(`✅ USING SHEET: ${sheet.id}`);
-            console.log(`🔗 Link: https://docs.google.com/spreadsheets/d/${sheet.id}`);
-            localStorage.setItem(STORAGE_KEYS.SHEET_ID, sheet.id);
-            return sheet.id;
-          } else {
-            console.log(`   ⚠️ Missing required tabs`);
-          }
-        } catch (err) {
-          console.log(`   ❌ Cannot access: ${err.message}`);
-        }
-      }
+      const tabs = sheetData.result.sheets.map(s => s.properties.title);
+      console.log('📑 Tabs:', tabs.join(', '));
       
-      console.log('📭 No valid TradeZen sheet found');
+      localStorage.setItem(STORAGE_KEYS.SHEET_ID, MASTER_SHEET_ID);
+      return MASTER_SHEET_ID;
       
     } catch (err) {
-      console.error('❌ Search failed:', err);
+      console.error('❌ Cannot access master sheet:', err);
+      console.error('   Make sure you granted Sheets permission when signing in');
+      throw new Error('Cannot access TradeZen sheet. Please sign out and sign in again, granting all permissions.');
     }
-
-    // Create new sheet
-    console.log('📝 Creating NEW spreadsheet...');
-    return await this.createNewSpreadsheet();
   }
 
   async createNewSpreadsheet() {
-    const response = await window.gapi.client.sheets.spreadsheets.create({
-      properties: { title: SHEET_NAME },
-      sheets: [
-        { properties: { title: SHEETS.TRADES, gridProperties: { rowCount: 1000, columnCount: 12 }}},
-        { properties: { title: SHEETS.TAGS, gridProperties: { rowCount: 1000, columnCount: 5 }}},
-        { properties: { title: SHEETS.SETTINGS, gridProperties: { rowCount: 1000, columnCount: 2 }}}
-      ]
-    });
-
-    const sheetId = response.result.spreadsheetId;
-    console.log('✅ Created:', sheetId);
-    console.log('🔗 Link: https://docs.google.com/spreadsheets/d/' + sheetId);
-    
-    localStorage.setItem(STORAGE_KEYS.SHEET_ID, sheetId);
-    await this.initializeSheets(sheetId, response.result.sheets);
-    
-    return sheetId;
+    // Should never be called since we always use MASTER_SHEET_ID
+    throw new Error('Sheet creation disabled - using master sheet');
   }
 
   async initializeSheets(sheetId, sheets) {
