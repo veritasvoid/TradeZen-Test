@@ -44,9 +44,6 @@ const Dashboard = () => {
 
   const tagPerformance = calculateTagPerformance(trades, tags);
 
-  console.log('📊 Tags loaded:', tags);
-  console.log('📈 Tag performance:', tagPerformance);
-
   if (isLoading || tagsLoading) {
     return (
       <div className="p-6">
@@ -56,36 +53,40 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] overflow-y-auto">
-      <div className="grid grid-cols-12 h-full">
+    <div className="h-screen overflow-hidden flex flex-col">
+      <div className="flex-1 grid grid-cols-12">
         
-        {/* LEFT SIDEBAR - Compact Performance */}
-        <div className="col-span-2 bg-slate-900/50 border-r border-slate-700/50 p-4 space-y-3 overflow-y-auto">
-          {/* Win Rate + Total Trades Combined */}
-          <div className="bg-slate-800/30 rounded-lg p-3">
-            <div className="flex items-center justify-center mb-2">
-              <WinRateDonut winRate={overallWinRate} size="small" />
+        {/* LEFT SIDEBAR - Performance */}
+        <div className="col-span-2 bg-slate-900/50 border-r border-slate-700/50 p-6 flex flex-col">
+          <div className="flex-1 flex flex-col justify-center space-y-6">
+            {/* Win Rate + Total Trades - LARGER */}
+            <div className="bg-slate-800/30 rounded-lg p-5">
+              <div className="flex items-center justify-center mb-4">
+                <WinRateDonut winRate={overallWinRate} />
+              </div>
+              <div className="text-center">
+                <div className="text-slate-400 text-xs mb-2 uppercase tracking-wider">Total Trades</div>
+                <div className="text-3xl font-black text-white">{totalTrades}</div>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-slate-400 text-[10px] mb-1">Total Trades</div>
-              <div className="text-xl font-bold text-white">{totalTrades}</div>
-            </div>
-          </div>
 
-          <MetricBoxSmall label="Avg P&L" value={formatCompactCurrency(avgPLPerTrade, currency)} valueColor={avgPLPerTrade >= 0 ? 'text-emerald-400' : 'text-red-400'} />
-          <MetricBoxSmall label="Avg Winner" value={formatCompactCurrency(avgWinner, currency)} valueColor="text-emerald-400" />
-          <MetricBoxSmall label="Avg Loser" value={formatCompactCurrency(avgLoser, currency)} valueColor="text-red-400" />
-          <MetricBoxSmall label="Best" value={formatCompactCurrency(bestTrade, currency)} valueColor="text-emerald-400" highlight="emerald" />
-          <MetricBoxSmall label="Worst" value={formatCompactCurrency(worstTrade, currency)} valueColor="text-red-400" highlight="red" />
+            <MetricBox label="Avg P&L" value={formatCompactCurrency(avgPLPerTrade, currency)} valueColor={avgPLPerTrade >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+            <MetricBox label="Avg Winner" value={formatCompactCurrency(avgWinner, currency)} valueColor="text-emerald-400" />
+            <MetricBox label="Avg Loser" value={formatCompactCurrency(avgLoser, currency)} valueColor="text-red-400" />
+            <MetricBox label="Best Trade" value={formatCompactCurrency(bestTrade, currency)} valueColor="text-emerald-400" highlight="emerald" />
+            <MetricBox label="Worst Trade" value={formatCompactCurrency(worstTrade, currency)} valueColor="text-red-400" highlight="red" />
+          </div>
         </div>
 
-        {/* CENTER - Chart */}
+        {/* CENTER - Chart + Monthly Tiles */}
         <div className="col-span-8 flex flex-col">
-          <div className="border-b border-slate-700/50 px-8 py-4">
-            <h2 className="text-xl font-bold text-center">Monthly P&L</h2>
+          {/* Chart Title */}
+          <div className="border-b border-slate-700/50 px-8 py-5">
+            <h2 className="text-2xl font-bold text-center">Monthly P&L</h2>
           </div>
 
-          <div className="flex-1 p-8">
+          {/* Chart - Takes more space */}
+          <div className="flex-[2] p-8">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 40, right: 30, left: 30, bottom: 30 }}>
                 <XAxis 
@@ -118,8 +119,9 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </div>
 
-          <div className="border-t border-slate-700/50 p-6">
-            <div className="grid grid-cols-6 gap-3">
+          {/* Monthly Tiles - Takes remaining space */}
+          <div className="flex-1 border-t border-slate-700/50 p-6 overflow-y-auto">
+            <div className="grid grid-cols-6 gap-4 h-full">
               {yearlyStats.map((monthData) => (
                 <MonthCard
                   key={monthData.month}
@@ -135,30 +137,32 @@ const Dashboard = () => {
         </div>
 
         {/* RIGHT SIDEBAR - Summary + Tags */}
-        <div className="col-span-2 bg-slate-900/50 border-l border-slate-700/50 p-4 space-y-3 overflow-y-auto">
-          <div className="text-slate-400 text-sm mb-2">{currentYear}</div>
+        <div className="col-span-2 bg-slate-900/50 border-l border-slate-700/50 p-6 flex flex-col">
+          <div className="flex-1 flex flex-col justify-center space-y-5">
+            <div className="text-slate-400 text-sm font-semibold">{currentYear}</div>
 
-          <SummaryBoxSmall
-            label="Account Balance"
-            value={formatCompactCurrency(accountBalance, currency)}
-            valueColor={accountBalance >= startingBalance ? 'text-emerald-400' : 'text-red-400'}
-            large
-          />
+            <SummaryBox
+              label="Account Balance"
+              value={formatCompactCurrency(accountBalance, currency)}
+              valueColor={accountBalance >= startingBalance ? 'text-emerald-400' : 'text-red-400'}
+              large
+            />
 
-          <SummaryBoxSmall
-            label="Yearly P&L"
-            value={formatCompactCurrency(totalPL, currency)}
-            valueColor={totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}
-          />
+            <SummaryBox
+              label="Yearly P&L"
+              value={formatCompactCurrency(totalPL, currency)}
+              valueColor={totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}
+            />
 
-          {/* Tag Performance - No Header */}
-          {tagPerformance.length > 0 && (
-            <div className="space-y-2 pt-3 border-t border-slate-700/50">
-              {tagPerformance.map(tag => (
-                <TagCardCompact key={tag.tagId} tag={tag} currency={currency} />
-              ))}
-            </div>
-          )}
+            {/* Tag Performance */}
+            {tagPerformance.length > 0 && (
+              <div className="space-y-4 pt-5 border-t border-slate-700/50 flex-1">
+                {tagPerformance.map(tag => (
+                  <TagCard key={tag.tagId} tag={tag} currency={currency} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -199,7 +203,7 @@ const calculateTagPerformance = (trades, tags) => {
     .sort((a, b) => b.totalPL - a.totalPL);
 };
 
-const MetricBoxSmall = ({ label, value, valueColor = 'text-white', highlight }) => {
+const MetricBox = ({ label, value, valueColor = 'text-white', highlight }) => {
   const bgClass = highlight === 'emerald' 
     ? 'bg-emerald-900/20' 
     : highlight === 'red' 
@@ -207,33 +211,33 @@ const MetricBoxSmall = ({ label, value, valueColor = 'text-white', highlight }) 
     : 'bg-slate-800/30';
 
   return (
-    <div className={`${bgClass} rounded-lg p-2.5`}>
-      <div className="text-slate-400 text-[10px] mb-1">{label}</div>
-      <div className={`text-lg font-bold ${valueColor}`}>{value}</div>
+    <div className={`${bgClass} rounded-lg p-4`}>
+      <div className="text-slate-400 text-xs mb-2 uppercase tracking-wider">{label}</div>
+      <div className={`text-2xl font-bold ${valueColor}`}>{value}</div>
     </div>
   );
 };
 
-const TagCardCompact = ({ tag, currency }) => {
+const TagCard = ({ tag, currency }) => {
   const isPositive = tag.totalPL >= 0;
   
   return (
-    <div className="bg-slate-800/30 rounded-lg p-2.5 hover:bg-slate-800/50 transition-all">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="text-xl">{tag.tagEmoji}</span>
+    <div className="bg-slate-800/30 rounded-lg p-4 hover:bg-slate-800/50 transition-all">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-3xl">{tag.tagEmoji}</span>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-bold truncate" style={{ color: tag.tagColor }}>
+          <div className="text-sm font-bold truncate" style={{ color: tag.tagColor }}>
             {tag.tagName}
           </div>
         </div>
-        {isPositive ? <TrendingUp size={14} className="text-emerald-400 flex-shrink-0" /> : <TrendingDown size={14} className="text-red-400 flex-shrink-0" />}
+        {isPositive ? <TrendingUp size={18} className="text-emerald-400 flex-shrink-0" /> : <TrendingDown size={18} className="text-red-400 flex-shrink-0" />}
       </div>
       
-      <div className={`text-lg font-bold mb-1.5 ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+      <div className={`text-2xl font-bold mb-3 ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
         {formatCompactCurrency(tag.totalPL, currency)}
       </div>
       
-      <div className="grid grid-cols-2 gap-1 text-[9px] text-slate-400">
+      <div className="grid grid-cols-2 gap-2 text-xs text-slate-400">
         <div>
           <span>Trades:</span>
           <span className="font-bold text-white ml-1">{tag.trades}</span>
@@ -247,36 +251,35 @@ const TagCardCompact = ({ tag, currency }) => {
   );
 };
 
-const SummaryBoxSmall = ({ label, value, valueColor = 'text-white', large = false }) => (
-  <div className="bg-slate-800/50 rounded-lg p-3">
-    <div className="text-slate-400 text-[10px] mb-1">{label}</div>
-    <div className={`${large ? 'text-xl' : 'text-lg'} font-bold ${valueColor}`}>{value}</div>
+const SummaryBox = ({ label, value, valueColor = 'text-white', large = false }) => (
+  <div className="bg-slate-800/50 rounded-lg p-4">
+    <div className="text-slate-400 text-xs mb-2 uppercase tracking-wider">{label}</div>
+    <div className={`${large ? 'text-3xl' : 'text-2xl'} font-bold ${valueColor}`}>{value}</div>
   </div>
 );
 
-const WinRateDonut = ({ winRate, size = 'normal' }) => {
-  const dimensions = size === 'small' ? { w: 20, h: 20, r: 35, stroke: 10, fontSize: 'text-lg' } : { w: 24, h: 24, r: 40, stroke: 12, fontSize: 'text-2xl' };
-  const radius = dimensions.r;
+const WinRateDonut = ({ winRate }) => {
+  const radius = 45;
   const circumference = 2 * Math.PI * radius;
   const winPercent = winRate / 100;
   const lossPercent = 1 - winPercent;
 
   return (
-    <div className={`relative w-${dimensions.w} h-${dimensions.h}`}>
+    <div className="relative w-32 h-32">
       <svg viewBox="0 0 100 100" className="transform -rotate-90">
-        <circle cx="50" cy="50" r={radius} fill="none" stroke="#1e293b" strokeWidth={dimensions.stroke} />
+        <circle cx="50" cy="50" r={radius} fill="none" stroke="#1e293b" strokeWidth="10" />
         {winRate > 0 && (
-          <circle cx="50" cy="50" r={radius} fill="none" stroke="#10b981" strokeWidth={dimensions.stroke}
+          <circle cx="50" cy="50" r={radius} fill="none" stroke="#10b981" strokeWidth="10"
             strokeDasharray={`${winPercent * circumference} ${circumference}`} />
         )}
         {winRate < 100 && (
-          <circle cx="50" cy="50" r={radius} fill="none" stroke="#ef4444" strokeWidth={dimensions.stroke}
+          <circle cx="50" cy="50" r={radius} fill="none" stroke="#ef4444" strokeWidth="10"
             strokeDasharray={`${lossPercent * circumference} ${circumference}`}
             strokeDashoffset={`${-winPercent * circumference}`} />
         )}
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className={`${dimensions.fontSize} font-bold`}>{winRate}%</span>
+        <span className="text-3xl font-black">{winRate}%</span>
       </div>
     </div>
   );
@@ -289,13 +292,14 @@ const MonthCard = ({ month, stats, isCurrentMonth, onClick, currency }) => {
     <div
       onClick={onClick}
       className={`
-        bg-slate-800/30 rounded-lg p-4 cursor-pointer transition-all hover:bg-slate-800/50
+        bg-slate-800/30 rounded-lg p-4 cursor-pointer transition-all hover:bg-slate-800/50 hover:scale-105
         ${isCurrentMonth ? 'ring-2 ring-blue-500' : ''}
+        flex flex-col justify-between h-full
       `}
     >
       <div className="text-slate-400 text-xs font-semibold mb-3 text-center">{month}</div>
       
-      <div className="flex items-center justify-center mb-3">
+      <div className="flex items-center justify-center mb-3 flex-1">
         <div className="relative w-16 h-16">
           <svg viewBox="0 0 36 36" className="transform -rotate-90">
             <circle cx="18" cy="18" r="16" fill="none" stroke="#1e293b" strokeWidth="3" />
