@@ -9,7 +9,7 @@ import {
   SHEETS
 } from './constants';
 
-// Google API Client with auto token refresh and robust sheet finding
+// Google API Client - ALWAYS searches Drive to find user's sheet
 class GoogleAPIClient {
   constructor() {
     this.accessToken = null;
@@ -17,9 +17,9 @@ class GoogleAPIClient {
     this.gapiInited = false;
     this.gisInited = false;
     this.refreshTimer = null;
+    this.userEmail = null; // Store user email to identify sheets
   }
 
-  // Initialize Google API
   async init() {
     return new Promise((resolve) => {
       if (!window.google) {
@@ -56,6 +56,25 @@ class GoogleAPIClient {
         resolve();
       }
     });
+  }
+
+  async getUserEmail() {
+    if (this.userEmail) return this.userEmail;
+    
+    try {
+      const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`
+        }
+      });
+      const data = await response.json();
+      this.userEmail = data.email;
+      console.log('👤 Signed in as:', this.userEmail);
+      return this.userEmail;
+    } catch (err) {
+      console.error('Failed to get user email:', err);
+      return null;
+    }
   }
 
   async refreshToken() {
@@ -116,6 +135,7 @@ class GoogleAPIClient {
           window.gapi.client.setToken({ access_token: this.accessToken });
           localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, this.accessToken);
           
+          await this.getUserEmail();
           this.scheduleTokenRefresh();
           resolve(resp);
         };
@@ -124,6 +144,7 @@ class GoogleAPIClient {
         if (savedToken) {
           this.accessToken = savedToken;
           window.gapi.client.setToken({ access_token: savedToken });
+          this.getUserEmail();
           this.scheduleTokenRefresh();
           resolve({ access_token: savedToken });
         } else {
@@ -142,8 +163,10 @@ class GoogleAPIClient {
     }
     
     this.accessToken = null;
+    this.userEmail = null;
     localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-    // Keep sheet/folder IDs so we reuse them
+    localStorage.removeItem(STORAGE_KEYS.SHEET_ID);
+    localStorage.removeItem(STORAGE_KEYS.DRIVE_FOLDER_ID);
     window.gapi.client.setToken(null);
   }
 
@@ -151,84 +174,81 @@ class GoogleAPIClient {
     return !!this.accessToken || !!localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
   }
 
-  // IMPROVED: More robust sheet finding
+  // COMPLETELY REWRITTEN - Always searches Drive, never trusts localStorage alone
   async getOrCreateSpreadsheet() {
-    console.log('🔍 Looking for TradeZen spreadsheet...');
+    console.log('🔍 Starting spreadsheet search...');
     
-    // Step 1: Try localStorage
-    const savedSheetId = localStorage.getItem(STORAGE_KEYS.SHEET_ID);
+    // Get user email for better debugging
+    await this.getUserEmail();
     
-    if (savedSheetId) {
-      console.log('📋 Found sheet ID in localStorage:', savedSheetId);
-      try {
-        const sheet = await window.gapi.client.sheets.spreadsheets.get({
-          spreadsheetId: savedSheetId
-        });
-        console.log('✅ Sheet accessible:', sheet.result.properties.title);
-        return savedSheetId;
-      } catch (err) {
-        console.warn('⚠️ Saved sheet not accessible:', err.result?.error?.message || err.message);
-        // Clear invalid ID
-        localStorage.removeItem(STORAGE_KEYS.SHEET_ID);
-      }
-    }
-
-    // Step 2: Search ALL spreadsheets in Drive
-    console.log('🔍 Searching Google Drive for existing TradeZen sheets...');
+    // ALWAYS search Drive first - don't trust localStorage
+    console.log('🔍 Searching ALL spreadsheets in Google Drive...');
+    
+    let allSheets = [];
+    
     try {
       const response = await window.gapi.client.drive.files.list({
-        q: `name='${SHEET_NAME}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,
-        fields: 'files(id, name, createdTime, modifiedTime)',
-        orderBy: 'modifiedTime desc', // Get most recently modified
-        spaces: 'drive'
+        q: `mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,
+        fields: 'files(id, name, createdTime, modifiedTime, owners)',
+        orderBy: 'modifiedTime desc',
+        spaces: 'drive',
+        pageSize: 100 // Get up to 100 sheets
       });
 
-      console.log('📊 Found sheets:', response.result.files?.length || 0);
+      allSheets = response.result.files || [];
+      console.log(`📊 Found ${allSheets.length} total spreadsheets`);
       
-      if (response.result.files && response.result.files.length > 0) {
-        // Show all found sheets
-        response.result.files.forEach((file, idx) => {
-          console.log(`  ${idx + 1}. ${file.name} (ID: ${file.id}, Modified: ${file.modifiedTime})`);
-        });
-        
-        // Use the most recently modified one
-        const existingSheetId = response.result.files[0].id;
-        console.log('✅ Using sheet:', existingSheetId);
-        
-        // Verify it has the right structure
+      // Filter for TradeZen sheets
+      const tradezenSheets = allSheets.filter(file => file.name === SHEET_NAME);
+      console.log(`📋 Found ${tradezenSheets.length} TradeZen spreadsheets:`);
+      
+      tradezenSheets.forEach((file, idx) => {
+        console.log(`  ${idx + 1}. ${file.name}`);
+        console.log(`     ID: ${file.id}`);
+        console.log(`     Modified: ${file.modifiedTime}`);
+        console.log(`     Created: ${file.createdTime}`);
+      });
+      
+      // Try each TradeZen sheet to find one with valid structure
+      for (const sheet of tradezenSheets) {
         try {
+          console.log(`🔍 Checking sheet: ${sheet.id}...`);
+          
           const sheetData = await window.gapi.client.sheets.spreadsheets.get({
-            spreadsheetId: existingSheetId
+            spreadsheetId: sheet.id
           });
           
           const sheetNames = sheetData.result.sheets.map(s => s.properties.title);
-          console.log('📑 Sheet tabs:', sheetNames);
+          console.log(`   Tabs: ${sheetNames.join(', ')}`);
           
-          // Check if it has the required tabs
           const hasRequiredTabs = 
             sheetNames.includes(SHEETS.TRADES) && 
-            sheetNames.includes(SHEETS.TAGS) && 
-            sheetNames.includes(SHEETS.SETTINGS);
+            sheetNames.includes(SHEETS.TAGS);
           
           if (hasRequiredTabs) {
-            localStorage.setItem(STORAGE_KEYS.SHEET_ID, existingSheetId);
-            console.log('✅ Found valid TradeZen sheet, reusing it');
-            return existingSheetId;
+            console.log(`✅ FOUND VALID TRADEZEN SHEET: ${sheet.id}`);
+            localStorage.setItem(STORAGE_KEYS.SHEET_ID, sheet.id);
+            return sheet.id;
           } else {
-            console.warn('⚠️ Sheet missing required tabs:', sheetNames);
+            console.log(`   ⚠️ Missing required tabs`);
           }
-        } catch (verifyErr) {
-          console.error('❌ Could not verify sheet structure:', verifyErr);
+        } catch (err) {
+          console.log(`   ❌ Cannot access sheet: ${err.message}`);
         }
-      } else {
-        console.log('📭 No existing TradeZen sheets found');
       }
+      
+      console.log('📭 No valid TradeZen sheets found');
+      
     } catch (err) {
-      console.error('❌ Drive search failed:', err.result?.error?.message || err.message);
+      console.error('❌ Drive search failed:', err);
     }
 
-    // Step 3: Create new sheet only if none found
-    console.log('📝 Creating new TradeZen spreadsheet...');
+    // Only create new sheet if absolutely no valid one was found
+    console.log('📝 Creating NEW TradeZen spreadsheet...');
+    return await this.createNewSpreadsheet();
+  }
+
+  async createNewSpreadsheet() {
     try {
       const response = await window.gapi.client.sheets.spreadsheets.create({
         properties: {
@@ -238,46 +258,37 @@ class GoogleAPIClient {
           { 
             properties: { 
               title: SHEETS.TRADES,
-              gridProperties: {
-                rowCount: 1000,
-                columnCount: 12
-              }
+              gridProperties: { rowCount: 1000, columnCount: 12 }
             } 
           },
           { 
             properties: { 
               title: SHEETS.TAGS,
-              gridProperties: {
-                rowCount: 1000,
-                columnCount: 5
-              }
+              gridProperties: { rowCount: 1000, columnCount: 5 }
             } 
           },
           { 
             properties: { 
               title: SHEETS.SETTINGS,
-              gridProperties: {
-                rowCount: 1000,
-                columnCount: 2
-              }
+              gridProperties: { rowCount: 1000, columnCount: 2 }
             } 
           }
         ]
       });
 
       const sheetId = response.result.spreadsheetId;
-      const sheets = response.result.sheets;
-      
       console.log('✅ Created new sheet:', sheetId);
+      console.log('🔗 Link:', `https://docs.google.com/spreadsheets/d/${sheetId}`);
+      
       localStorage.setItem(STORAGE_KEYS.SHEET_ID, sheetId);
 
-      await this.initializeSheets(sheetId, sheets);
-      console.log('✅ Sheet initialized with headers');
+      await this.initializeSheets(sheetId, response.result.sheets);
+      console.log('✅ Sheet initialized');
 
       return sheetId;
-    } catch (createErr) {
-      console.error('❌ Failed to create sheet:', createErr);
-      throw createErr;
+    } catch (err) {
+      console.error('❌ Failed to create sheet:', err);
+      throw err;
     }
   }
 
@@ -289,11 +300,7 @@ class GoogleAPIClient {
     const requests = [
       {
         updateCells: {
-          range: {
-            sheetId: tradesSheetId,
-            startRowIndex: 0,
-            endRowIndex: 1
-          },
+          range: { sheetId: tradesSheetId, startRowIndex: 0, endRowIndex: 1 },
           rows: [{
             values: [
               { userEnteredValue: { stringValue: 'tradeId' } },
@@ -315,11 +322,7 @@ class GoogleAPIClient {
       },
       {
         updateCells: {
-          range: {
-            sheetId: tagsSheetId,
-            startRowIndex: 0,
-            endRowIndex: 1
-          },
+          range: { sheetId: tagsSheetId, startRowIndex: 0, endRowIndex: 1 },
           rows: [{
             values: [
               { userEnteredValue: { stringValue: 'tagId' } },
@@ -334,11 +337,7 @@ class GoogleAPIClient {
       },
       {
         updateCells: {
-          range: {
-            sheetId: settingsSheetId,
-            startRowIndex: 0,
-            endRowIndex: 1
-          },
+          range: { sheetId: settingsSheetId, startRowIndex: 0, endRowIndex: 1 },
           rows: [{
             values: [
               { userEnteredValue: { stringValue: 'key' } },
@@ -361,12 +360,10 @@ class GoogleAPIClient {
     
     if (savedFolderId) {
       try {
-        await window.gapi.client.drive.files.get({
-          fileId: savedFolderId
-        });
+        await window.gapi.client.drive.files.get({ fileId: savedFolderId });
         return savedFolderId;
       } catch (err) {
-        console.log('Saved folder not found, searching/creating...');
+        localStorage.removeItem(STORAGE_KEYS.DRIVE_FOLDER_ID);
       }
     }
 
@@ -381,10 +378,7 @@ class GoogleAPIClient {
       mainFolderId = searchResponse.result.files[0].id;
     } else {
       const mainFolder = await window.gapi.client.drive.files.create({
-        resource: {
-          name: 'TradeZen',
-          mimeType: 'application/vnd.google-apps.folder'
-        },
+        resource: { name: 'TradeZen', mimeType: 'application/vnd.google-apps.folder' },
         fields: 'id'
       });
       mainFolderId = mainFolder.result.id;
@@ -418,17 +412,8 @@ class GoogleAPIClient {
   async uploadImage(imageBlob, filename) {
     const folderId = await this.getOrCreateDriveFolder();
     
-    const parts = filename.split('_');
-    let displayName = filename;
-    
-    if (parts.length >= 2) {
-      const date = parts[1];
-      const time = parts[2]?.replace('.jpg', '');
-      displayName = `Trade_${date}_${time || 'unknown'}.jpg`;
-    }
-    
     const metadata = {
-      name: displayName,
+      name: filename,
       parents: [folderId],
       mimeType: 'image/jpeg'
     };
@@ -439,9 +424,7 @@ class GoogleAPIClient {
 
     const response = await fetch(`${GOOGLE_DRIVE_API}?uploadType=multipart`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.accessToken}`
-      },
+      headers: { Authorization: `Bearer ${this.accessToken}` },
       body: form
     });
 
