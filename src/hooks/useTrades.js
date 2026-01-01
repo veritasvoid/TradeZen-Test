@@ -295,9 +295,8 @@ export const useDeleteTrade = () => {
   });
 };
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { SHEETS } from '@/lib/constants';
 
-// Clear all data from all sheets
+// Clear all data from Google Sheets
 const clearAllData = async () => {
   const sheetId = '1ruzm5D-ofifAU7d5oRChBT7DAYFTlVLgULSsXvYEtXU';
   
