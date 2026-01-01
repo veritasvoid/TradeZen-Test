@@ -43,13 +43,12 @@ const MonthView = () => {
     tradesByDay[day].push(trade);
   });
 
+  const [showDayTradesModal, setShowDayTradesModal] = useState(false);
+  const [selectedDay, setSelectedDay] = useState(null);
+
   const handleDayClick = (day) => {
-    const dayTrades = tradesByDay[day] || [];
-    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    
-    // Always allow adding trades, regardless of how many exist
-    setSelectedDate(dateStr);
-    setShowAddModal(true);
+    setSelectedDay(day);
+    setShowDayTradesModal(true);
   };
 
   const handleEditTrade = (trade) => {
@@ -188,6 +187,22 @@ const MonthView = () => {
       </div>
 
       {/* MODALS */}
+      {showDayTradesModal && selectedDay && (
+        <DayTradesModal
+          day={selectedDay}
+          year={currentYear}
+          month={currentMonth}
+          trades={tradesByDay[selectedDay] || []}
+          tags={tags}
+          currency={currency}
+          onClose={() => {
+            setShowDayTradesModal(false);
+            setSelectedDay(null);
+          }}
+          onEditTrade={handleEditTrade}
+        />
+      )}
+
       {showEditModal && selectedTrade && (
         <TradeEditModal
           trade={selectedTrade}
@@ -252,15 +267,8 @@ const DayCell = ({ day, trades, dayPL, isToday, currency, onClick, onEditTrade }
             </div>
           )}
 
-          {/* Click to add more trades */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick();
-            }}
-            className="absolute inset-0 opacity-0 hover:opacity-5 bg-white transition-opacity rounded-lg"
-            title="Click to add trade"
-          />
+          {/* Clickable overlay */}
+          <div className="absolute inset-0" />
         </>
       )}
     </div>
@@ -322,6 +330,291 @@ const TradeRow = ({ trade, currency, onEdit }) => {
   );
 };
 
+// Day Trades Modal - Shows all trades for a specific day
+const DayTradesModal = ({ day, year, month, trades, tags, currency, onClose, onEditTrade }) => {
+  const deleteTrade = useDeleteTrade();
+  const [showAddForm, setShowAddForm] = useState(trades.length === 0);
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+  const handleDelete = async (tradeId) => {
+    if (!confirm('Delete this trade?')) return;
+    try {
+      await deleteTrade.mutateAsync(tradeId);
+    } catch (error) {
+      alert('Failed to delete: ' + error.message);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-900 rounded-2xl border border-slate-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+        <div className="flex items-center justify-between mb-6 sticky top-0 bg-slate-900 pb-4">
+          <div>
+            <h3 className="text-2xl font-black">{monthNames[month]} {day}, {year}</h3>
+            <p className="text-sm text-slate-400">{trades.length} trade{trades.length !== 1 ? 's' : ''}</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-lg">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Existing Trades */}
+        {trades.length > 0 && !showAddForm && (
+          <div className="space-y-3 mb-6">
+            {trades.map(trade => (
+              <div key={trade.tradeId} className="bg-slate-800/50 rounded-lg p-4 flex items-center gap-4">
+                <div className="flex-shrink-0 text-xs text-slate-500">
+                  {trade.time}
+                </div>
+
+                <div className="flex-1">
+                  {trade.tagName && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm">{trade.tagEmoji}</span>
+                      <span className="text-xs font-semibold" style={{ color: trade.tagColor }}>
+                        {trade.tagName}
+                      </span>
+                    </div>
+                  )}
+                  {trade.notes && (
+                    <div className="text-xs text-slate-400">{trade.notes}</div>
+                  )}
+                </div>
+
+                <div className={`text-xl font-black ${trade.amount >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {formatCompactCurrency(trade.amount, currency)}
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      onEditTrade(trade);
+                      onClose();
+                    }}
+                    className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-all"
+                  >
+                    <Edit size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(trade.tradeId)}
+                    className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-all"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add New Trade Button or Form */}
+        {!showAddForm ? (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg rounded-lg transition-all font-semibold flex items-center justify-center gap-2"
+          >
+            <Plus size={20} />
+            Add Another Trade
+          </button>
+        ) : (
+          <div className="border-t border-slate-700 pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-bold">New Trade</h4>
+              {trades.length > 0 && (
+                <button
+                  onClick={() => setShowAddForm(false)}
+                  className="text-sm text-slate-400 hover:text-slate-300"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+            <TradeAddFormInline 
+              date={dateStr} 
+              tags={tags} 
+              currency={currency}
+              onSuccess={() => {
+                setShowAddForm(false);
+              }}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Inline add form for day trades modal
+const TradeAddFormInline = ({ date, tags, currency, onSuccess }) => {
+  const addTrade = useAddTrade();
+  const [formData, setFormData] = useState({
+    amount: '',
+    time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+    tagId: '',
+    notes: '',
+    screenshot: null
+  });
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+    
+    setFormData({ ...formData, screenshot: file });
+    setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const selectedTag = tags.find(t => t.tagId === formData.tagId);
+      await addTrade.mutateAsync({
+        tradeId: generateId(),
+        date,
+        time: formData.time,
+        amount: parseFloat(formData.amount),
+        tagId: formData.tagId || null,
+        tagName: selectedTag?.name || null,
+        tagColor: selectedTag?.color || null,
+        tagEmoji: selectedTag?.emoji || null,
+        notes: formData.notes,
+        screenshot: formData.screenshot
+      });
+      onSuccess();
+      // Reset form
+      setFormData({
+        amount: '',
+        time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+        tagId: '',
+        notes: '',
+        screenshot: null
+      });
+      setPreviewUrl(null);
+    } catch (error) {
+      alert('Failed to save: ' + error.message);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-semibold text-slate-400 mb-2">Time</label>
+          <input
+            type="time"
+            value={formData.time}
+            onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-400 mb-2">Amount ({currency})</label>
+          <input
+            type="number"
+            step="0.01"
+            value={formData.amount}
+            onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            placeholder="100"
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold text-slate-400 mb-2">Tag (Optional)</label>
+        <select
+          value={formData.tagId}
+          onChange={(e) => setFormData({ ...formData, tagId: e.target.value })}
+          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+        >
+          <option value="">No Tag</option>
+          {tags.map(tag => (
+            <option key={tag.tagId} value={tag.tagId}>
+              {tag.emoji} {tag.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold text-slate-400 mb-2">Notes (Optional)</label>
+        <textarea
+          value={formData.notes}
+          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:outline-none resize-none"
+          rows={2}
+          placeholder="Trade notes..."
+        />
+      </div>
+
+      {/* Image Upload */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-400 mb-2">Screenshot (Optional)</label>
+        {!previewUrl ? (
+          <div className="grid grid-cols-2 gap-2">
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              <div className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-lg p-4 text-center transition-all">
+                <Camera size={24} className="mx-auto mb-1 text-slate-400" />
+                <div className="text-xs text-slate-400">Take Photo</div>
+              </div>
+            </label>
+            
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              <div className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-lg p-4 text-center transition-all">
+                <Upload size={24} className="mx-auto mb-1 text-slate-400" />
+                <div className="text-xs text-slate-400">Upload</div>
+              </div>
+            </label>
+          </div>
+        ) : (
+          <div className="relative">
+            <img src={previewUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg" />
+            <button
+              type="button"
+              onClick={() => {
+                setFormData({ ...formData, screenshot: null });
+                setPreviewUrl(null);
+              }}
+              className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-black/70"
+            >
+              <X size={16} className="text-white" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <button
+        type="submit"
+        disabled={addTrade.isLoading}
+        className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg rounded-lg transition-all font-semibold disabled:opacity-50"
+      >
+        {addTrade.isLoading ? 'Saving...' : 'Save Trade'}
+      </button>
+    </form>
+  );
+};
+
 // Edit Trade Modal
 const TradeEditModal = ({ trade, tags, currency, onClose }) => {
   const updateTrade = useUpdateTrade();
@@ -330,8 +623,25 @@ const TradeEditModal = ({ trade, tags, currency, onClose }) => {
     amount: trade.amount,
     time: trade.time,
     tagId: trade.tagId || '',
-    notes: trade.notes || ''
+    notes: trade.notes || '',
+    screenshot: null
   });
+  const [previewUrl, setPreviewUrl] = useState(
+    trade.driveImageId ? `https://drive.google.com/thumbnail?id=${trade.driveImageId}&sz=w800` : null
+  );
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+    
+    setFormData({ ...formData, screenshot: file });
+    setPreviewUrl(URL.createObjectURL(file));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -364,7 +674,7 @@ const TradeEditModal = ({ trade, tags, currency, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 rounded-2xl border border-slate-700 max-w-md w-full p-6">
+      <div className="bg-slate-900 rounded-2xl border border-slate-700 max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-black">Edit Trade</h3>
           <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-lg">
@@ -425,6 +735,55 @@ const TradeEditModal = ({ trade, tags, currency, onClose }) => {
             />
           </div>
 
+          {/* Image Upload */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-400 mb-2">Screenshot</label>
+            {!previewUrl ? (
+              <div className="grid grid-cols-2 gap-2">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                  <div className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-lg p-6 text-center transition-all">
+                    <Camera size={28} className="mx-auto mb-2 text-slate-400" />
+                    <div className="text-xs text-slate-400">Take Photo</div>
+                  </div>
+                </label>
+                
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                  <div className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-lg p-6 text-center transition-all">
+                    <Upload size={28} className="mx-auto mb-2 text-slate-400" />
+                    <div className="text-xs text-slate-400">Upload</div>
+                  </div>
+                </label>
+              </div>
+            ) : (
+              <div className="relative">
+                <img src={previewUrl} alt="Trade screenshot" className="w-full h-48 object-cover rounded-lg" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData({ ...formData, screenshot: null });
+                    setPreviewUrl(null);
+                  }}
+                  className="absolute top-2 right-2 p-2 bg-black/50 rounded-full hover:bg-black/70"
+                >
+                  <X size={20} className="text-white" />
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-3 pt-4">
             <button
               type="button"
@@ -442,9 +801,10 @@ const TradeEditModal = ({ trade, tags, currency, onClose }) => {
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg rounded-lg transition-all font-semibold"
+              disabled={updateTrade.isLoading}
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg rounded-lg transition-all font-semibold disabled:opacity-50"
             >
-              Save
+              {updateTrade.isLoading ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>
