@@ -1,100 +1,134 @@
-import React, { useState, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { Trash2, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Header } from '@/components/layout/Header';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useTrades } from '@/hooks/useTrades';
 import { CURRENCIES, SHEETS } from '@/lib/constants';
+import { Trash2, AlertTriangle } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 const SettingsView = () => {
   const { settings, updateSettings } = useSettingsStore();
+  const { data: allTrades = [] } = useTrades();
   const queryClient = useQueryClient();
+  
   const [showClearModal, setShowClearModal] = useState(false);
+  const [selectedYears, setSelectedYears] = useState([]);
   const [isClearing, setIsClearing] = useState(false);
 
-  // Load settings from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('tradezen-settings');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        updateSettings(parsed);
-      } catch (e) {
-        console.error('Failed to parse saved settings:', e);
-      }
-    }
-  }, []);
-
-  const handleSettingChange = (updates) => {
-    updateSettings(updates);
-    const newSettings = { ...settings, ...updates };
-    localStorage.setItem('tradezen-settings', JSON.stringify(newSettings));
-  };
+  // Get all years that have data
+  const yearsWithData = [...new Set(allTrades.map(t => {
+    const year = parseInt(t.date.split('-')[0]);
+    return year;
+  }))].sort((a, b) => b - a);
 
   const handleClearData = async () => {
+    if (selectedYears.length === 0) {
+      alert('Please select at least one year to delete');
+      return;
+    }
+
+    const confirmation = confirm(
+      `Are you sure you want to delete ALL data for ${selectedYears.join(', ')}?\n\nThis will permanently delete:\n- All trades\n- All tags\n- All screenshots\n\nThis cannot be undone!`
+    );
+
+    if (!confirmation) return;
+
     setIsClearing(true);
-    const sheetId = '1ruzm5D-ofifAU7d5oRChBT7DAYFTlVLgULSsXvYEtXU';
-    
+
     try {
-      // Clear Trades
-      await window.gapi.client.sheets.spreadsheets.values.clear({
+      const sheetId = '1ruzm5D-ofifAU7d5oRChBT7DAYFTlVLgULSsXvYEtXU';
+
+      // Get all trades
+      const response = await window.gapi.client.sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
         range: `${SHEETS.TRADES}!A2:L`
       });
 
-      // Clear Tags
-      await window.gapi.client.sheets.spreadsheets.values.clear({
-        spreadsheetId: sheetId,
-        range: `${SHEETS.TAGS}!A2:E`
+      const rows = response.result.values || [];
+      
+      // Find rows to delete (trades from selected years)
+      const rowsToDelete = [];
+      rows.forEach((row, index) => {
+        const tradeDate = row[1]; // date column
+        const tradeYear = parseInt(tradeDate.split('-')[0]);
+        if (selectedYears.includes(tradeYear)) {
+          rowsToDelete.push(index + 2); // +2 because: 0-indexed + header row
+        }
       });
 
-      // Clear Settings
-      await window.gapi.client.sheets.spreadsheets.values.clear({
-        spreadsheetId: sheetId,
-        range: `${SHEETS.SETTINGS}!A2:B`
-      });
+      // Delete rows in reverse order (bottom to top) to maintain indices
+      rowsToDelete.sort((a, b) => b - a);
 
-      // Clear cache
+      // Get sheet metadata to get actual sheetId
+      const sheetMetadata = await window.gapi.client.sheets.spreadsheets.get({
+        spreadsheetId: sheetId
+      });
+      
+      const tradesSheet = sheetMetadata.result.sheets.find(s => s.properties.title === SHEETS.TRADES);
+      const tradesSheetId = tradesSheet.properties.sheetId;
+
+      // Delete rows in batches
+      for (const rowIndex of rowsToDelete) {
+        await window.gapi.client.sheets.spreadsheets.batchUpdate({
+          spreadsheetId: sheetId,
+          resource: {
+            requests: [{
+              deleteDimension: {
+                range: {
+                  sheetId: tradesSheetId,
+                  dimension: 'ROWS',
+                  startIndex: rowIndex - 1,
+                  endIndex: rowIndex
+                }
+              }
+            }]
+          }
+        });
+      }
+
+      // Invalidate cache
       queryClient.invalidateQueries({ queryKey: ['trades'] });
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
-      localStorage.removeItem('tradezen-settings');
 
-      alert('✅ All data cleared successfully!');
+      alert(`Successfully deleted ${rowsToDelete.length} trades from ${selectedYears.join(', ')}!`);
       setShowClearModal(false);
-      window.location.reload();
+      setSelectedYears([]);
+      
     } catch (error) {
-      console.error('Clear failed:', error);
-      alert('❌ Failed to clear data: ' + error.message);
+      console.error('Failed to clear data:', error);
+      alert('Failed to delete data: ' + error.message);
     } finally {
       setIsClearing(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" style={{ paddingTop: '100px' }}>
-      <div className="max-w-3xl mx-auto p-6 space-y-6">
-        
-        <h1 className="text-3xl font-black mb-6">Settings</h1>
+  const toggleYear = (year) => {
+    setSelectedYears(prev => 
+      prev.includes(year) 
+        ? prev.filter(y => y !== year)
+        : [...prev, year]
+    );
+  };
 
-        {/* Trading Settings */}
-        <Section title="Trading Settings">
-          <SettingRow label="Starting Balance">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400">{settings.currency}</span>
-              <input
-                type="number"
-                value={settings.startingBalance || 0}
-                onChange={(e) => handleSettingChange({ startingBalance: parseFloat(e.target.value) || 0 })}
-                className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 w-40 text-right font-mono focus:border-blue-500 focus:outline-none"
-                step="0.01"
-                min="0"
-              />
+  return (
+    <>
+      <Header title="Settings" />
+      <div className="p-4 max-w-3xl mx-auto space-y-6">
+        {/* Appearance */}
+        <Section title="Appearance">
+          <SettingRow label="Theme">
+            <div className="text-text-secondary text-sm">
+              Dark (Always On)
             </div>
           </SettingRow>
+        </Section>
 
+        {/* Preferences */}
+        <Section title="Preferences">
           <SettingRow label="Currency">
             <select
               value={settings.currency}
-              onChange={(e) => handleSettingChange({ currency: e.target.value })}
-              className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 focus:border-blue-500 focus:outline-none"
+              onChange={(e) => updateSettings({ currency: e.target.value })}
+              className="input py-2"
             >
               {CURRENCIES.map(curr => (
                 <option key={curr.code} value={curr.symbol}>
@@ -105,26 +139,22 @@ const SettingsView = () => {
           </SettingRow>
         </Section>
 
-        {/* Appearance */}
-        <Section title="Appearance">
-          <SettingRow label="Theme">
-            <div className="text-slate-400 text-sm">Dark (Always On)</div>
-          </SettingRow>
-        </Section>
-
         {/* Data Management */}
         <Section title="Data Management">
           <SettingRow label="Storage">
-            <div className="text-slate-400 text-sm">Google Sheets & Drive</div>
+            <div className="text-text-secondary text-sm">
+              Google Sheets & Drive
+            </div>
           </SettingRow>
 
-          <SettingRow label="Clear All Data">
+          <SettingRow label="Clear Data">
             <button
               onClick={() => setShowClearModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all font-semibold"
+              disabled={yearsWithData.length === 0}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-2 font-semibold"
             >
               <Trash2 size={16} />
-              Clear Everything
+              Delete Year Data
             </button>
           </SettingRow>
         </Section>
@@ -132,17 +162,9 @@ const SettingsView = () => {
         {/* About */}
         <Section title="About">
           <SettingRow label="Version">
-            <div className="text-slate-400 text-sm">1.0.0</div>
-          </SettingRow>
-          <SettingRow label="Source Code">
-            <a
-              href="https://github.com/veritasvoid/TradeZen"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-400 text-sm hover:underline"
-            >
-              GitHub →
-            </a>
+            <div className="text-text-secondary text-sm">
+              1.0.0
+            </div>
           </SettingRow>
         </Section>
       </div>
@@ -151,49 +173,88 @@ const SettingsView = () => {
       {showClearModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-slate-900 rounded-2xl border border-red-500/50 max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
-                <AlertTriangle className="text-red-500" size={24} />
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-red-600/20 rounded-full">
+                <AlertTriangle size={24} className="text-red-500" />
               </div>
-              <h3 className="text-xl font-black">Clear All Data?</h3>
+              <h3 className="text-2xl font-black text-red-500">Delete Data</h3>
             </div>
 
-            <p className="text-slate-300 mb-2">This will permanently delete:</p>
-            <ul className="text-slate-400 text-sm space-y-1 mb-6 ml-4">
-              <li>• All trades</li>
-              <li>• All tags/strategies</li>
-              <li>• All screenshots</li>
-              <li>• Starting balance & settings</li>
-            </ul>
-
-            <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3 mb-6">
-              <p className="text-red-400 text-sm font-semibold">
-                ⚠️ This action cannot be undone!
+            <div className="mb-6">
+              <p className="text-slate-300 mb-4">
+                Select which year(s) you want to delete:
               </p>
+
+              {yearsWithData.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">No data to delete</p>
+              ) : (
+                <div className="space-y-2">
+                  {yearsWithData.map(year => {
+                    const yearTrades = allTrades.filter(t => 
+                      parseInt(t.date.split('-')[0]) === year
+                    );
+                    
+                    return (
+                      <label
+                        key={year}
+                        className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          selectedYears.includes(year)
+                            ? 'border-red-500 bg-red-500/10'
+                            : 'border-slate-700 hover:border-slate-600'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedYears.includes(year)}
+                          onChange={() => toggleYear(year)}
+                          className="w-5 h-5"
+                        />
+                        <div className="flex-1">
+                          <div className="font-bold text-lg">{year}</div>
+                          <div className="text-sm text-slate-400">
+                            {yearTrades.length} trade{yearTrades.length !== 1 ? 's' : ''}
+                          </div>
+                        </div>
+                        {selectedYears.includes(year) && (
+                          <Trash2 size={20} className="text-red-500" />
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+
+              {selectedYears.length > 0 && (
+                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <p className="text-red-400 text-sm font-semibold">
+                    ⚠️ This will permanently delete all trades, tags, and screenshots for {selectedYears.join(', ')}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3">
               <button
-                onClick={() => setShowClearModal(false)}
+                onClick={() => {
+                  setShowClearModal(false);
+                  setSelectedYears([]);
+                }}
                 disabled={isClearing}
-                className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 rounded-lg transition-all font-semibold disabled:opacity-50"
+                className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 rounded-lg transition-all font-semibold"
               >
                 Cancel
               </button>
               <button
                 onClick={handleClearData}
-                disabled={isClearing}
-                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg transition-all font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                disabled={selectedYears.length === 0 || isClearing}
+                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-lg transition-all font-semibold flex items-center justify-center gap-2"
               >
                 {isClearing ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Clearing...
-                  </>
+                  <>Deleting...</>
                 ) : (
                   <>
                     <Trash2 size={16} />
-                    Delete Everything
+                    Delete Selected
                   </>
                 )}
               </button>
@@ -201,20 +262,24 @@ const SettingsView = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
 const Section = ({ title, children }) => (
-  <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-    <h2 className="text-lg font-bold mb-4 text-center">{title}</h2>
-    <div className="space-y-4">{children}</div>
+  <div className="card">
+    <h2 className="text-lg font-bold mb-4 pb-3 border-b border-border">
+      {title}
+    </h2>
+    <div className="space-y-4">
+      {children}
+    </div>
   </div>
 );
 
 const SettingRow = ({ label, children }) => (
-  <div className="flex items-center justify-between py-3 border-b border-slate-700/30 last:border-0">
-    <div className="font-medium text-slate-300">{label}</div>
+  <div className="flex items-center justify-between py-2">
+    <span className="text-sm font-medium">{label}</span>
     <div>{children}</div>
   </div>
 );
