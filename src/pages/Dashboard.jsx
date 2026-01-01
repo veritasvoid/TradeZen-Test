@@ -18,15 +18,21 @@ const Dashboard = () => {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth();
   
-  // FIX #2: Filter trades to ONLY current year
+  // Year selector state
+  const [selectedYear, setSelectedYear] = React.useState(currentYear);
+  
+  // Get available years from trades
+  const availableYears = [...new Set(allTrades.map(t => parseInt(t.date.split('-')[0])))].sort((a, b) => b - a);
+  
+  // Filter trades by selected year
   const trades = allTrades.filter(trade => {
     const tradeYear = parseInt(trade.date.split('-')[0]);
-    return tradeYear === currentYear;
+    return tradeYear === selectedYear;
   });
   
-  console.log(`📅 Dashboard showing ${currentYear} trades:`, trades.length, 'of', allTrades.length, 'total');
+  console.log(`📅 Dashboard showing ${selectedYear} trades:`, trades.length, 'of', allTrades.length, 'total');
   
-  const yearlyStats = calculateYearlyStats(trades, currentYear);
+  const yearlyStats = calculateYearlyStats(trades, selectedYear);
 
   const totalPL = yearlyStats.reduce((sum, m) => sum + m.totalPL, 0);
   const totalTrades = yearlyStats.reduce((sum, m) => sum + m.tradeCount, 0);
@@ -52,6 +58,29 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" style={{ paddingTop: '80px' }}>
       <div className="max-w-[1800px] mx-auto p-6 space-y-6">
         
+        {/* YEAR SELECTOR */}
+        <div className="flex items-center justify-center gap-4">
+          <button
+            onClick={() => setSelectedYear(selectedYear - 1)}
+            disabled={!availableYears.includes(selectedYear - 1)}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg transition-all"
+          >
+            ← {selectedYear - 1}
+          </button>
+          
+          <div className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
+            <h1 className="text-3xl font-black">{selectedYear}</h1>
+          </div>
+          
+          <button
+            onClick={() => setSelectedYear(selectedYear + 1)}
+            disabled={!availableYears.includes(selectedYear + 1)}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg transition-all"
+          >
+            {selectedYear + 1} →
+          </button>
+        </div>
+        
         {/* TOP STATS ROW */}
         <div className="grid grid-cols-4 gap-6">
           <StatCard 
@@ -64,7 +93,7 @@ const Dashboard = () => {
             label="Total P&L"
             value={formatCompactCurrency(totalPL, currency)}
             trend={totalPL >= 0 ? 'up' : 'down'}
-            subtitle={`${currentYear} YTD`}
+            subtitle={`${selectedYear} YTD`}
           />
           <StatCard 
             label="Win Rate"
@@ -112,7 +141,7 @@ const Dashboard = () => {
           <div className="col-span-9 space-y-6">
             {/* Chart */}
             <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-              <h2 className="text-2xl font-black mb-6 text-center">{currentYear}</h2>
+              <h2 className="text-2xl font-black mb-6 text-center">{selectedYear}</h2>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
@@ -140,7 +169,7 @@ const Dashboard = () => {
                     month={monthNames[m.month]}
                     stats={m}
                     isCurrentMonth={m.month === currentMonth}
-                    onClick={() => navigate(`/month/${currentYear}/${m.month}`)}
+                    onClick={() => navigate(`/month/${selectedYear}/${m.month}`)}
                     currency={currency}
                   />
                 ))}
