@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Calendar, Tag, Settings, TrendingUp } from 'lucide-react';
 
@@ -11,12 +11,30 @@ const navItems = [
 
 export const TopNav = () => {
   const location = useLocation();
+  const [isVisible, setIsVisible] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <nav className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700/50 shadow-xl">
+    <nav 
+      className={`
+        fixed top-0 left-0 right-0 z-50 transition-all duration-300
+        ${isVisible || scrolled ? 'translate-y-0 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700/50 shadow-xl' : '-translate-y-full bg-transparent'}
+      `}
+      onMouseEnter={() => setIsVisible(true)}
+      onMouseLeave={() => setIsVisible(false)}
+    >
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-20">
-          {/* Premium Logo */}
+          {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl blur-md opacity-75 group-hover:opacity-100 transition-opacity" />
@@ -32,7 +50,7 @@ export const TopNav = () => {
             </div>
           </Link>
 
-          {/* Premium Navigation */}
+          {/* Navigation */}
           <div className="flex items-center gap-2">
             {navItems.map(item => {
               const Icon = item.icon;
@@ -63,6 +81,13 @@ export const TopNav = () => {
           </div>
         </div>
       </div>
+
+      {/* Hover indicator */}
+      {!isVisible && !scrolled && (
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full">
+          <div className="w-12 h-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-b-lg opacity-50" />
+        </div>
+      )}
     </nav>
   );
 };
