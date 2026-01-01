@@ -26,8 +26,10 @@ const parseTradeRow = (row) => {
 
 // Fetch all trades
 const fetchTrades = async () => {
-  const sheetId = localStorage.getItem(STORAGE_KEYS.SHEET_ID);
-  if (!sheetId) return [];
+  // Use hardcoded sheet ID - guaranteed to work
+  const sheetId = '1ruzm5D-ofifAU7d5oRChBT7DAYFTlVLgULSsXvYEtXU';
+  
+  console.log('🔍 Fetching all trades from sheet:', sheetId);
 
   try {
     const response = await window.gapi.client.sheets.spreadsheets.values.get({
@@ -36,9 +38,14 @@ const fetchTrades = async () => {
     });
 
     const rows = response.result.values || [];
-    return rows.map(parseTradeRow).filter(Boolean);
+    console.log('📥 Received rows from sheet:', rows.length);
+    
+    const parsed = rows.map(parseTradeRow).filter(Boolean);
+    console.log('✅ Parsed trades:', parsed.length);
+    
+    return parsed;
   } catch (error) {
-    console.error('Failed to fetch trades:', error);
+    console.error('❌ Failed to fetch trades:', error);
     return [];
   }
 };
