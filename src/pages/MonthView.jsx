@@ -64,8 +64,32 @@ const MonthView = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         <div className="max-w-[1800px] mx-auto p-6 pt-20">{/* pt-20 for TopNav */}
         
-        {/* Month Title */}
-        <h1 className="text-3xl font-black text-center mb-6">{monthNames[currentMonth]} {currentYear}</h1>
+        {/* Month Title with Navigation */}
+        <div className="flex items-center justify-center gap-4 mb-6">
+          <button
+            onClick={() => {
+              const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+              const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+              navigate(`/month/${prevYear}/${prevMonth}`);
+            }}
+            className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-all"
+          >
+            ← Prev
+          </button>
+          
+          <h1 className="text-3xl font-black">{monthNames[currentMonth]} {currentYear}</h1>
+          
+          <button
+            onClick={() => {
+              const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
+              const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
+              navigate(`/month/${nextYear}/${nextMonth}`);
+            }}
+            className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-all"
+          >
+            Next →
+          </button>
+        </div>
         
         <div className="grid grid-cols-12 gap-6">
           
