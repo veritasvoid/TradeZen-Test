@@ -210,8 +210,8 @@ const DayCell = ({ day, trades, dayPL, isToday, currency, onClick, onEditTrade }
 
   return (
     <div 
-      onClick={() => !hasData && onClick()}
-      className={`aspect-square rounded-lg border ${bgColor} ${isToday ? 'ring-2 ring-blue-500' : ''} p-2 relative hover:bg-slate-700/30 transition-all ${!hasData ? 'cursor-pointer' : ''}`}
+      onClick={onClick}
+      className={`aspect-square rounded-lg border ${bgColor} ${isToday ? 'ring-2 ring-blue-500' : ''} p-2 relative hover:bg-slate-700/30 transition-all cursor-pointer`}
     >
       <div className="text-sm font-semibold text-slate-300">{day}</div>
 
