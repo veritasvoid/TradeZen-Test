@@ -34,11 +34,40 @@ export const TAG_COLORS = [
   { name: 'Blue', value: '#3b82f6' }
 ];
 
-// Tag emojis
+// Day Trading Emojis
 export const TAG_EMOJIS = [
-  '🎯', '📈', '📉', '⚡', '🔥', '💎', '🎲', '🔄',
-  '🚨', '✅', '❌', '💰', '🎪', '⭐', '💪', '🧠',
-  '👀', '🎨', '🚀', '💡', '🔔', '📊', '💵', '📱'
+  '📈', // Chart increasing - breakouts
+  '📉', // Chart decreasing - shorts
+  '💹', // Chart with yen - forex/currency
+  '📊', // Bar chart - analysis
+  '🎯', // Target - precision entries
+  '⚡', // Lightning - scalping/quick trades
+  '🔥', // Fire - hot stocks/momentum
+  '💎', // Diamond - hold/conviction
+  '🚀', // Rocket - gap ups/runners
+  '🎲', // Dice - risky plays
+  '🔄', // Arrows - reversals
+  '💰', // Money bag - profit target
+  '💵', // Dollar - cash secured
+  '📱', // Phone - mobile alerts
+  '⏰', // Alarm - time-based
+  '🧲', // Magnet - support/resistance
+  '🎪', // Circus - volatility
+  '🌊', // Wave - trends
+  '⭐', // Star - A+ setups
+  '💪', // Muscle - strong trend
+  '🧠', // Brain - smart money
+  '👀', // Eyes - watching
+  '🔔', // Bell - alerts triggered
+  '✅', // Check - confirmed signal
+  '❌', // X - stop loss
+  '🚨', // Siren - breaking news
+  '📍', // Pin - specific level
+  '🎨', // Art - pattern
+  '💡', // Bulb - idea
+  '🔮', // Crystal ball - prediction
+  '⚙️', // Gear - mechanical system
+  '🎢'  // Roller coaster - choppy market
 ];
 
 // Currency symbols
@@ -59,8 +88,7 @@ export const DEFAULT_SETTINGS = {
   currency: '$',
   theme: 'dark',
   weekStartsOn: 0, // 0 = Sunday
-  firstLaunchCompleted: false,
-  startingBalance: 0  // CRITICAL: Add this so it persists!
+  firstLaunchCompleted: false
 };
 
 // Storage keys
