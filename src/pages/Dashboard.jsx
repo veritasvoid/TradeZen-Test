@@ -60,7 +60,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* COMPACT HEADER WITH LOGO + NAV */}
       <div className="fixed top-0 left-0 right-0 z-50 border-b border-slate-700/50 bg-slate-900/95 backdrop-blur-sm">
-        <div className="max-w-[1800px] mx-auto px-6 py-3">
+        <div className="max-w-[1800px] mx-auto px-6 py-4">{/* Increased from py-3 to py-4 */}
           <div className="flex items-center justify-between">
             {/* Logo */}
             <button 
@@ -125,7 +125,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="max-w-[1800px] mx-auto p-6 pt-20 space-y-4">{/* pt-20 for header clearance */}
+      <div className="max-w-[1800px] mx-auto p-6 pt-24 space-y-4">{/* pt-24 for compact header */}
         <div className="grid grid-cols-3 gap-6">
           <StatCard 
             label="Total P&L"
