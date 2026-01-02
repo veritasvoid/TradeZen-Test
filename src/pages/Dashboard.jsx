@@ -1,18 +1,15 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrades } from '@/hooks/useTrades';
-import { useTags } from '@/hooks/useTags';
 import { TopNav } from '@/components/layout/TopNav';
 import { Loading } from '@/components/shared/Loading';
 import { calculateYearlyStats, formatCompactCurrency } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from 'recharts';
-import { TrendingUp, TrendingDown } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { data: allTrades = [], isLoading } = useTrades();
-  const { data: tags = [], isLoading: tagsLoading } = useTags();
   const currency = useSettingsStore(state => state.settings.currency);
   
   const currentYear = new Date().getFullYear();
@@ -26,7 +23,8 @@ const Dashboard = () => {
     const tradeYear = parseInt(trade.date.split('-')[0]);
     return tradeYear === selectedYear;
   });
-  const yearlyStats = calculateYearlyStats(trades, currentYear);
+  
+  const yearlyStats = calculateYearlyStats(trades, selectedYear);
 
   const totalPL = yearlyStats.reduce((sum, m) => sum + m.totalPL, 0);
   const totalTrades = yearlyStats.reduce((sum, m) => sum + m.tradeCount, 0);
@@ -44,10 +42,10 @@ const Dashboard = () => {
     monthIndex: m.month
   }));
 
-  if (isLoading || tagsLoading) {
+  if (isLoading) {
     return (
       <>
-        <TopNav />
+        <TopNav selectedYear={selectedYear} onYearChange={setSelectedYear} maxYear={maxYear} />
         <div className="p-4 pt-20">
           <Loading type="skeleton-grid" />
         </div>
@@ -57,16 +55,12 @@ const Dashboard = () => {
 
   return (
     <>
-      <TopNav 
-        selectedYear={selectedYear}
-        onYearChange={setSelectedYear}
-        maxYear={maxYear}
-      />
+      <TopNav selectedYear={selectedYear} onYearChange={setSelectedYear} maxYear={maxYear} />
       
       <div className="p-4 max-w-7xl mx-auto pt-20 space-y-6">
         {/* Year Overview */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">{currentYear} Performance</h2>
+          <h2 className="text-2xl font-bold mb-4">{selectedYear} Performance</h2>
           
           {/* Chart */}
           <div className="card mb-4 p-6">
@@ -80,7 +74,7 @@ const Dashboard = () => {
                 <Bar 
                   dataKey="pl" 
                   radius={[8, 8, 0, 0]}
-                  onClick={(data) => navigate(`/month/${currentYear}/${data.monthIndex}`)}
+                  onClick={(data) => navigate(`/month/${selectedYear}/${data.monthIndex}`)}
                   cursor="pointer"
                 >
                   {chartData.map((entry, index) => (
@@ -126,7 +120,7 @@ const Dashboard = () => {
                 key={monthData.month}
                 month={monthNames[monthData.month]}
                 stats={monthData}
-                onClick={() => navigate(`/month/${currentYear}/${monthData.month}`)}
+                onClick={() => navigate(`/month/${selectedYear}/${monthData.month}`)}
                 currency={currency}
               />
             ))}
@@ -186,7 +180,7 @@ const MonthTile = ({ month, stats, onClick, currency }) => {
         {formatCompactCurrency(stats.totalPL, currency)}
       </div>
       
-      {/* Mini Donut Chart Placeholder */}
+      {/* Mini Donut Chart */}
       <div className="flex items-center justify-center mb-2">
         <div className="relative w-16 h-16">
           <svg viewBox="0 0 36 36" className="transform -rotate-90">
