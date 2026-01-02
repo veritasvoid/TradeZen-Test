@@ -84,7 +84,7 @@ const Dashboard = () => {
             <div className="col-span-2 card p-3 flex flex-col items-center justify-center">
               <div className="text-xs text-slate-400 mb-1">ACCOUNT VALUE</div>
               <div className={`text-2xl font-black ${accountBalance >= startingBalance ? 'text-emerald-400' : 'text-red-400'}`}>
-                {formatCompactCurrency(accountBalance, currency)}
+                {currency}{accountBalance.toLocaleString()}
               </div>
             </div>
 
@@ -92,20 +92,52 @@ const Dashboard = () => {
             <div className="col-span-8 card p-3">
               <div className="text-xs text-slate-400 mb-2 uppercase tracking-wider text-center">Strategy Performance</div>
               {tagPerformance.length > 0 ? (
-                <div className="flex gap-4 justify-center">
+                <div className="flex gap-2 justify-center">
                   {tagPerformance.map(tag => (
-                    <div key={tag.tagId} className="flex items-center gap-2">
-                      <span className="text-2xl">{tag.tagEmoji}</span>
-                      <div className="text-center">
-                        <div className="text-sm font-bold" style={{ color: tag.tagColor }}>
-                          {tag.tagName}
+                    <div key={tag.tagId} className="bg-slate-800/50 rounded-lg p-2 flex flex-col items-center min-w-[100px]">
+                      <span className="text-xl mb-1">{tag.tagEmoji}</span>
+                      <div className="text-xs font-bold mb-1 truncate max-w-full" style={{ color: tag.tagColor }}>
+                        {tag.tagName}
+                      </div>
+                      <div className={`text-base font-black mb-2 ${tag.totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {currency}{tag.totalPL.toLocaleString()}
+                      </div>
+                      
+                      {/* Win Rate Donut */}
+                      <div className="relative w-12 h-12 mb-1">
+                        <svg viewBox="0 0 36 36" className="transform -rotate-90">
+                          <circle cx="18" cy="18" r="15" fill="none" stroke="#1e293b" strokeWidth="3" />
+                          {tag.winRate > 0 && (
+                            <circle 
+                              cx="18" 
+                              cy="18" 
+                              r="15" 
+                              fill="none" 
+                              stroke="#10b981" 
+                              strokeWidth="3" 
+                              strokeDasharray={`${(tag.winRate/100) * 94} 94`} 
+                            />
+                          )}
+                          {tag.winRate < 100 && (
+                            <circle 
+                              cx="18" 
+                              cy="18" 
+                              r="15" 
+                              fill="none" 
+                              stroke="#ef4444" 
+                              strokeWidth="3" 
+                              strokeDasharray={`${((100-tag.winRate)/100) * 94} 94`} 
+                              strokeDashoffset={`${-(tag.winRate/100) * 94}`} 
+                            />
+                          )}
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-[9px] font-black">{tag.winRate}%</span>
                         </div>
-                        <div className={`text-xl font-black ${tag.totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {formatCompactCurrency(tag.totalPL, currency)}
-                        </div>
-                        <div className="text-[10px] text-slate-400">
-                          {tag.trades}T • {tag.winRate}% WR
-                        </div>
+                      </div>
+                      
+                      <div className="text-[9px] text-slate-400">
+                        {tag.trades} trades
                       </div>
                     </div>
                   ))}
@@ -124,22 +156,22 @@ const Dashboard = () => {
             <div className="col-span-2 grid grid-rows-4 gap-2">
               <div className="card p-3 flex flex-col items-center justify-center">
                 <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">AVG WINNER</div>
-                <div className="text-2xl font-black text-emerald-400">{formatCompactCurrency(avgWinner, currency)}</div>
+                <div className="text-2xl font-black text-emerald-400">{currency}{avgWinner.toLocaleString()}</div>
               </div>
               
               <div className="card p-3 flex flex-col items-center justify-center">
                 <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">AVG LOSER</div>
-                <div className="text-2xl font-black text-red-400">{formatCompactCurrency(avgLoser, currency)}</div>
+                <div className="text-2xl font-black text-red-400">{currency}{Math.abs(avgLoser).toLocaleString()}</div>
               </div>
               
               <div className="card p-3 flex flex-col items-center justify-center">
                 <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">BEST</div>
-                <div className="text-2xl font-black text-emerald-400">{formatCompactCurrency(bestTrade, currency)}</div>
+                <div className="text-2xl font-black text-emerald-400">{currency}{bestTrade.toLocaleString()}</div>
               </div>
               
               <div className="card p-3 flex flex-col items-center justify-center">
                 <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">WORST</div>
-                <div className="text-2xl font-black text-red-400">{formatCompactCurrency(worstTrade, currency)}</div>
+                <div className="text-2xl font-black text-red-400">{currency}{Math.abs(worstTrade).toLocaleString()}</div>
               </div>
             </div>
 
