@@ -3,47 +3,24 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useMonthTrades, useUpdateTrade, useDeleteTrade, useAddTrade } from '@/hooks/useTrades';
 import { useTags } from '@/hooks/useTags';
 import { TopNav } from '@/components/layout/TopNav';
-import { Edit, Trash2, Plus, X, Camera, Upload } from 'lucide-react';
+import { Edit, Trash2, Plus, X, Camera, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCompactCurrency, generateId } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settingsStore';
 
 const MonthView = () => {
   const { year: yearParam, month: monthParam } = useParams();
   const navigate = useNavigate();
-  const currentDate = new Date();
-  const currentYear = parseInt(yearParam) || currentDate.getFullYear();
-  const currentMonth = monthParam !== undefined ? parseInt(monthParam) : currentDate.getMonth();
   
+  const currentDate = new Date();
+  const currentYear = yearParam ? parseInt(yearParam) : currentDate.getFullYear();
+  const currentMonth = monthParam !== undefined ? parseInt(monthParam) : currentDate.getMonth();
+
   const { data: trades = [], isLoading } = useMonthTrades(currentYear, currentMonth);
-  const { data: tags = [] } = useTags();
+  const { data: tags = [], isLoading: tagsLoading } = useTags();
   const currency = useSettingsStore(state => state.settings.currency);
 
-  const [selectedTrade, setSelectedTrade] = useState(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
-
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-
-  // Calculate month stats
-  const totalPL = trades.reduce((sum, t) => sum + t.amount, 0);
-  const winners = trades.filter(t => t.amount > 0);
-  const losers = trades.filter(t => t.amount < 0);
-  const winRate = trades.length > 0 ? Math.round((winners.length / trades.length) * 100) : 0;
-
-  // Tag performance for this month
-  const tagPerformance = calculateMonthTagPerformance(trades);
-
-  // Organize trades by day
-  const tradesByDay = {};
-  trades.forEach(trade => {
-    const day = parseInt(trade.date.split('-')[2]);
-    if (!tradesByDay[day]) tradesByDay[day] = [];
-    tradesByDay[day].push(trade);
-  });
-
+  const [showTradeEditModal, setShowTradeEditModal] = useState(false);
+  const [editingTrade, setEditingTrade] = useState(null);
   const [showDayTradesModal, setShowDayTradesModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
 
@@ -53,18 +30,39 @@ const MonthView = () => {
   };
 
   const handleEditTrade = (trade) => {
-    setSelectedTrade(trade);
-    setShowEditModal(true);
+    setEditingTrade(trade);
+    setShowTradeEditModal(true);
   };
+
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+
+  const tradesByDay = {};
+  trades.forEach(trade => {
+    const day = parseInt(trade.date.split('-')[2]);
+    if (!tradesByDay[day]) tradesByDay[day] = [];
+    tradesByDay[day].push(trade);
+  });
+
+  const totalPL = trades.reduce((sum, t) => sum + t.amount, 0);
+  const winners = trades.filter(t => t.amount > 0);
+  const losers = trades.filter(t => t.amount < 0);
+  const winRate = trades.length > 0 ? Math.round((winners.length / trades.length) * 100) : 0;
+
+  const tagPerformance = calculateMonthTagPerformance(trades, tags);
+
+  if (isLoading || tagsLoading) return <div className="p-6 pt-20">Loading...</div>;
 
   return (
     <>
       <TopNav />
       
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-        <div className="max-w-[1800px] mx-auto p-6 pt-20">{/* pt-20 for TopNav */}
+        <div className="max-w-[1800px] mx-auto p-6 pt-20">
         
-        {/* Month Title with Navigation */}
+        {/* Month Title with UPGRADED Navigation */}
         <div className="flex items-center justify-center gap-4 mb-6">
           <button
             onClick={() => {
@@ -72,12 +70,15 @@ const MonthView = () => {
               const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
               navigate(`/month/${prevYear}/${prevMonth}`);
             }}
-            className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-all"
+            className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-purple-600 rounded-xl transition-all border border-slate-700/50 shadow-lg hover:shadow-xl hover:scale-105"
           >
-            ← Prev
+            <ChevronLeft size={20} className="group-hover:animate-pulse" />
+            <span className="font-semibold">Prev</span>
           </button>
           
-          <h1 className="text-3xl font-black">{monthNames[currentMonth]} {currentYear}</h1>
+          <h1 className="text-3xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            {monthNames[currentMonth]} {currentYear}
+          </h1>
           
           <button
             onClick={() => {
@@ -85,9 +86,10 @@ const MonthView = () => {
               const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
               navigate(`/month/${nextYear}/${nextMonth}`);
             }}
-            className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-all"
+            className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-purple-600 rounded-xl transition-all border border-slate-700/50 shadow-lg hover:shadow-xl hover:scale-105"
           >
-            Next →
+            <span className="font-semibold">Next</span>
+            <ChevronRight size={20} className="group-hover:animate-pulse" />
           </button>
         </div>
         
@@ -96,7 +98,6 @@ const MonthView = () => {
           {/* CALENDAR - 9 cols */}
           <div className="col-span-9">
             <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-              {/* Days of week header */}
               <div className="grid grid-cols-7 gap-2 mb-4">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                   <div key={day} className="text-center text-slate-400 text-sm font-semibold py-2">
@@ -105,7 +106,6 @@ const MonthView = () => {
                 ))}
               </div>
 
-              {/* Calendar grid */}
               <div className="grid grid-cols-7 gap-2">
                 {Array.from({ length: firstDayOfMonth }).map((_, i) => (
                   <div key={`empty-${i}`} className="aspect-square" />
@@ -136,44 +136,46 @@ const MonthView = () => {
             </div>
           </div>
 
-          {/* STATS SIDEBAR - 3 cols */}
+          {/* COMPACT STATS SIDEBAR - 3 cols */}
           <div className="col-span-3 space-y-4">
-            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-              <h3 className="text-sm uppercase tracking-wider text-slate-400 mb-4 font-semibold text-center">Month Stats</h3>
+            {/* COMPACT STATS BOX */}
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-4">
+              <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-3 font-semibold text-center">Month Stats</h3>
               
-              <div className="space-y-4">
-                <StatRow label="Total P&L" value={formatCompactCurrency(totalPL, currency)} color={totalPL >= 0 ? 'emerald' : 'red'} />
-                <StatRow label="Trades" value={trades.length} />
-                <StatRow label="Winners" value={winners.length} color="emerald" />
-                <StatRow label="Losers" value={losers.length} color="red" />
-                
-                {/* Win Rate Donut - Large */}
-                <div className="flex flex-col items-center justify-center py-4">
-                  <div className="text-xs text-slate-400 uppercase tracking-wider mb-3">Win Rate</div>
-                  <WinRateDonut winRate={winRate} size="large" />
-                </div>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <CompactStat label="P&L" value={formatCompactCurrency(totalPL, currency)} color={totalPL >= 0 ? 'emerald' : 'red'} />
+                <CompactStat label="Trades" value={trades.length} />
+                <CompactStat label="Winners" value={winners.length} color="emerald" />
+                <CompactStat label="Losers" value={losers.length} color="red" />
+              </div>
+              
+              {/* Win Rate Donut - Centered */}
+              <div className="flex flex-col items-center justify-center pt-2 pb-1">
+                <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">Win Rate</div>
+                <WinRateDonut winRate={winRate} size="medium" />
               </div>
             </div>
 
+            {/* STRATEGIES BOX */}
             {tagPerformance.length > 0 && (
-              <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-                <h3 className="text-sm uppercase tracking-wider text-slate-400 mb-4 font-semibold text-center">Strategies</h3>
+              <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-4">
+                <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-3 font-semibold text-center">Strategies</h3>
                 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {tagPerformance.map(tag => (
-                    <div key={tag.tagId} className="bg-slate-800/50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xl">{tag.tagEmoji}</span>
+                    <div key={tag.tagId} className="bg-slate-800/50 rounded-lg p-2">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-lg">{tag.tagEmoji}</span>
                         <div className="flex-1 min-w-0">
                           <div className="text-xs font-bold truncate" style={{ color: tag.tagColor }}>
                             {tag.tagName}
                           </div>
                         </div>
                       </div>
-                      <div className={`text-lg font-black ${tag.totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <div className={`text-base font-black ${tag.totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         {formatCompactCurrency(tag.totalPL, currency)}
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-1">
+                      <div className="text-[9px] text-slate-500 mt-1">
                         {tag.trades}T • {tag.winRate}% WR
                       </div>
                     </div>
@@ -185,7 +187,6 @@ const MonthView = () => {
         </div>
       </div>
 
-      {/* MODALS */}
       {showDayTradesModal && selectedDay && (
         <DayTradesModal
           day={selectedDay}
@@ -202,51 +203,79 @@ const MonthView = () => {
         />
       )}
 
-      {showEditModal && selectedTrade && (
+      {showTradeEditModal && editingTrade && (
         <TradeEditModal
-          trade={selectedTrade}
+          trade={editingTrade}
           tags={tags}
           currency={currency}
           onClose={() => {
-            setShowEditModal(false);
-            setSelectedTrade(null);
+            setShowTradeEditModal(false);
+            setEditingTrade(null);
           }}
         />
       )}
-
-      {showAddModal && (
-        <TradeAddModal
-          date={selectedDate}
-          tags={tags}
-          currency={currency}
-          onClose={() => {
-            setShowAddModal(false);
-            setSelectedDate(null);
-          }}
-        />
-      )}
-    </div>
     </>
   );
 };
 
-// Day cell component
-const DayCell = ({ day, trades, dayPL, isToday, currency, onClick, onEditTrade }) => {
-  const hasData = trades.length > 0;
-  const bgColor = hasData 
-    ? (dayPL > 0 ? 'bg-emerald-900/20 border-emerald-500/30' : 'bg-red-900/20 border-red-500/30')
-    : 'bg-slate-800/20 border-slate-700/30';
+// COMPACT STAT component
+const CompactStat = ({ label, value, color }) => {
+  const colorClass = color === 'emerald' ? 'text-emerald-400' : color === 'red' ? 'text-red-400' : 'text-slate-200';
+  
+  return (
+    <div className="bg-slate-800/30 rounded-lg p-2 text-center">
+      <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-1">{label}</div>
+      <div className={`text-base font-black ${colorClass}`}>{value}</div>
+    </div>
+  );
+};
+
+// Win Rate Donut Chart - FIXED for medium size
+const WinRateDonut = ({ winRate, size = 'normal' }) => {
+  const dimensions = size === 'large' 
+    ? { w: 120, h: 120, r: 50, stroke: 12, text: 'text-4xl' }
+    : size === 'medium'
+    ? { w: 90, h: 90, r: 38, stroke: 10, text: 'text-3xl' }
+    : { w: 64, h: 64, r: 28, stroke: 10, text: 'text-lg' };
+    
+  const circ = 2 * Math.PI * dimensions.r;
+  const win = winRate / 100;
+  const loss = 1 - win;
 
   return (
-    <div 
-      onClick={onClick}
-      className={`aspect-square rounded-lg border ${bgColor} ${isToday ? 'ring-2 ring-blue-500' : ''} p-2 relative hover:bg-slate-700/30 transition-all cursor-pointer`}
-    >
-      <div className="text-sm font-semibold text-slate-300">{day}</div>
-
-      {hasData && (
-        <>
-          {/* P&L - CENTERED AND LARGER */}
+    <div className="relative flex-shrink-0" style={{ width: dimensions.w, height: dimensions.h }}>
+      <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
+        <circle cx="50" cy="50" r={dimensions.r} fill="none" stroke="#1e293b" strokeWidth={dimensions.stroke} />
+        {winRate > 0 && (
+          <circle 
+            cx="50" 
+            cy="50" 
+            r={dimensions.r} 
+            fill="none" 
+            stroke="#10b981" 
+            strokeWidth={dimensions.stroke} 
+            strokeDasharray={`${win * circ} ${circ}`}
+          />
+        )}
+        {winRate < 100 && (
+          <circle 
+            cx="50" 
+            cy="50" 
+            r={dimensions.r} 
+            fill="none" 
+            stroke="#ef4444" 
+            strokeWidth={dimensions.stroke} 
+            strokeDasharray={`${loss * circ} ${circ}`} 
+            strokeDashoffset={`${-win * circ}`}
+          />
+        )}
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className={`font-black ${dimensions.text}`}>{winRate}%</span>
+      </div>
+    </div>
+  );
+};
           <div className={`absolute inset-0 flex items-center justify-center text-lg font-black ${dayPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
             {formatCompactCurrency(dayPL, currency)}
           </div>
