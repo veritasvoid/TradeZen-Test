@@ -64,7 +64,7 @@ const MonthView = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         <div className="max-w-[1800px] mx-auto p-6 pt-20">{/* pt-20 for TopNav */}
         
-        {/* Month Title with UPGRADED Navigation */}
+        {/* Month Title with Navigation */}
         <div className="flex items-center justify-center gap-4 mb-6">
           <button
             onClick={() => {
@@ -74,7 +74,7 @@ const MonthView = () => {
             }}
             className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-purple-600 rounded-xl transition-all border border-slate-700/50 shadow-lg hover:shadow-xl hover:scale-105"
           >
-            <ChevronLeft size={20} className="group-hover:animate-pulse" />
+            <ChevronLeft size={20} />
             <span className="font-semibold">Prev</span>
           </button>
           
@@ -91,7 +91,7 @@ const MonthView = () => {
             className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-purple-600 rounded-xl transition-all border border-slate-700/50 shadow-lg hover:shadow-xl hover:scale-105"
           >
             <span className="font-semibold">Next</span>
-            <ChevronRight size={20} className="group-hover:animate-pulse" />
+            <ChevronRight size={20} />
           </button>
         </div>
         
@@ -140,54 +140,38 @@ const MonthView = () => {
             </div>
           </div>
 
-          {/* COMPACT STATS SIDEBAR - 3 cols */}
+          {/* STATS SIDEBAR - 3 cols */}
           <div className="col-span-3 space-y-4">
-            {/* COMPACT STATS BOX */}
-            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-4">
-              <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-3 font-semibold text-center">Month Stats</h3>
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
+              <h3 className="text-sm uppercase tracking-wider text-slate-400 mb-4 font-semibold text-center">Month Stats</h3>
               
-              <div className="grid grid-cols-2 gap-2 mb-3">
-                <CompactStat label="P&L" value={formatCompactCurrency(totalPL, currency)} color={totalPL >= 0 ? 'emerald' : 'red'} />
-                <CompactStat label="Trades" value={trades.length} />
-                <CompactStat label="Winners" value={winners.length} color="emerald" />
-                <CompactStat label="Losers" value={losers.length} color="red" />
-              </div>
-              
-              {/* Win Rate Donut - Centered */}
-              <div className="flex flex-col items-center justify-center pt-2 pb-1">
-                <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">Win Rate</div>
-                <WinRateDonut winRate={winRate} size="medium" />
+              <div className="space-y-4">
+                <StatRow label="Total P&L" value={formatCompactCurrency(totalPL, currency)} color={totalPL >= 0 ? 'emerald' : 'red'} />
+                <StatRow label="Trades" value={trades.length} />
+                <StatRow label="Winners" value={winners.length} color="emerald" />
+                <StatRow label="Losers" value={losers.length} color="red" />
+                <StatRow label="Win Rate" value={`${winRate}%`} color={winRate >= 50 ? 'emerald' : 'red'} />
               </div>
             </div>
 
-            {/* STRATEGIES BOX */}
             {tagPerformance.length > 0 && (
-              <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-4">
-                <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-3 font-semibold text-center">Strategies</h3>
+              <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
+                <h3 className="text-sm uppercase tracking-wider text-slate-400 mb-4 font-semibold text-center">Strategies</h3>
                 
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {tagPerformance.map(tag => (
-                    <div key={tag.tagId} className="bg-slate-800/50 rounded-lg p-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">{tag.tagEmoji}</span>
+                    <div key={tag.tagId} className="bg-slate-800/50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xl">{tag.tagEmoji}</span>
                         <div className="flex-1 min-w-0">
                           <div className="text-xs font-bold truncate" style={{ color: tag.tagColor }}>
                             {tag.tagName}
                           </div>
                         </div>
                       </div>
-                      <div className={`text-base font-black ${tag.totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <div className={`text-lg font-black ${tag.totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         {formatCompactCurrency(tag.totalPL, currency)}
                       </div>
-                      <div className="text-[9px] text-slate-500 mt-1">
-                        {tag.trades}T • {tag.winRate}% WR
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
                       <div className="text-[10px] text-slate-400 mt-1">
                         {tag.trades}T • {tag.winRate}% WR
                       </div>
@@ -888,60 +872,6 @@ const TradeAddModal = ({ date, tags, currency, onClose }) => {
             </button>
           </div>
         </form>
-      </div>
-    </div>
-  );
-};
-
-// COMPACT STAT component
-const CompactStat = ({ label, value, color }) => {
-  const colorClass = color === 'emerald' ? 'text-emerald-400' : color === 'red' ? 'text-red-400' : 'text-slate-200';
-  
-  return (
-    <div className="bg-slate-800/30 rounded-lg p-2 text-center">
-      <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-1">{label}</div>
-      <div className={`text-base font-black ${colorClass}`}>{value}</div>
-    </div>
-  );
-};
-
-// Win Rate Donut Chart
-const WinRateDonut = ({ winRate, size = 'normal' }) => {
-  const dimensions = size === 'large' ? { w: 120, h: 120, r: 50, stroke: 12 } : { w: 64, h: 64, r: 28, stroke: 10 };
-  const circ = 2 * Math.PI * dimensions.r;
-  const win = winRate / 100;
-  const loss = 1 - win;
-
-  return (
-    <div className={`relative flex-shrink-0`} style={{ width: dimensions.w, height: dimensions.h }}>
-      <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
-        <circle cx="50" cy="50" r={dimensions.r} fill="none" stroke="#1e293b" strokeWidth={dimensions.stroke} />
-        {winRate > 0 && (
-          <circle 
-            cx="50" 
-            cy="50" 
-            r={dimensions.r} 
-            fill="none" 
-            stroke="#10b981" 
-            strokeWidth={dimensions.stroke} 
-            strokeDasharray={`${win * circ} ${circ}`}
-          />
-        )}
-        {winRate < 100 && (
-          <circle 
-            cx="50" 
-            cy="50" 
-            r={dimensions.r} 
-            fill="none" 
-            stroke="#ef4444" 
-            strokeWidth={dimensions.stroke} 
-            strokeDasharray={`${loss * circ} ${circ}`} 
-            strokeDashoffset={`${-win * circ}`}
-          />
-        )}
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className={`font-black ${size === 'large' ? 'text-4xl' : 'text-lg'}`}>{winRate}%</span>
       </div>
     </div>
   );
