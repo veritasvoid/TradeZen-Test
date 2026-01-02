@@ -89,24 +89,24 @@ const Dashboard = () => {
             </div>
 
             {/* Strategy Performance */}
-            <div className="col-span-8 card p-3">
-              <div className="text-xs text-slate-400 mb-2 uppercase tracking-wider text-center">Strategy Performance</div>
+            <div className="col-span-8 card p-4">
+              <div className="text-xs text-slate-400 mb-4 uppercase tracking-wider text-center">Strategy Performance</div>
               {tagPerformance.length > 0 ? (
-                <div className="flex gap-2 justify-center">
+                <div className="flex gap-4">
                   {tagPerformance.map(tag => (
-                    <div key={tag.tagId} className="bg-slate-800/50 rounded-lg p-2 flex flex-col items-center min-w-[100px]">
-                      <span className="text-xl mb-1">{tag.tagEmoji}</span>
-                      <div className="text-xs font-bold mb-1 truncate max-w-full" style={{ color: tag.tagColor }}>
+                    <div key={tag.tagId} className="flex-1 bg-slate-800/50 rounded-xl p-4 flex flex-col items-center border border-slate-700/30">
+                      <span className="text-3xl mb-2">{tag.tagEmoji}</span>
+                      <div className="text-sm font-bold mb-2 text-center w-full" style={{ color: tag.tagColor }}>
                         {tag.tagName}
                       </div>
-                      <div className={`text-base font-black mb-2 ${tag.totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <div className={`text-xl font-black mb-3 ${tag.totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         {currency}{tag.totalPL.toLocaleString()}
                       </div>
                       
-                      {/* Win Rate Donut */}
-                      <div className="relative w-12 h-12 mb-1">
+                      {/* Win Rate Donut - LARGER */}
+                      <div className="relative w-16 h-16 mb-2">
                         <svg viewBox="0 0 36 36" className="transform -rotate-90">
-                          <circle cx="18" cy="18" r="15" fill="none" stroke="#1e293b" strokeWidth="3" />
+                          <circle cx="18" cy="18" r="15" fill="none" stroke="#1e293b" strokeWidth="4" />
                           {tag.winRate > 0 && (
                             <circle 
                               cx="18" 
@@ -114,7 +114,7 @@ const Dashboard = () => {
                               r="15" 
                               fill="none" 
                               stroke="#10b981" 
-                              strokeWidth="3" 
+                              strokeWidth="4" 
                               strokeDasharray={`${(tag.winRate/100) * 94} 94`} 
                             />
                           )}
@@ -125,19 +125,19 @@ const Dashboard = () => {
                               r="15" 
                               fill="none" 
                               stroke="#ef4444" 
-                              strokeWidth="3" 
+                              strokeWidth="4" 
                               strokeDasharray={`${((100-tag.winRate)/100) * 94} 94`} 
                               strokeDashoffset={`${-(tag.winRate/100) * 94}`} 
                             />
                           )}
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-[9px] font-black">{tag.winRate}%</span>
+                          <span className="text-sm font-black">{tag.winRate}%</span>
                         </div>
                       </div>
                       
-                      <div className="text-[9px] text-slate-400">
-                        {tag.trades} trades
+                      <div className="text-xs text-slate-400">
+                        {tag.trades} trade{tag.trades !== 1 ? 's' : ''}
                       </div>
                     </div>
                   ))}
