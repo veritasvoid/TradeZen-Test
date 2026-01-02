@@ -250,16 +250,23 @@ const DayCell = ({ day, trades, dayPL, isToday, currency, onClick, onEditTrade }
             {formatCompactCurrency(dayPL, currency)}
           </div>
 
-          {/* Tags - bottom-left - MORE VISIBLE */}
-          <div className="absolute bottom-1 left-1 flex flex-wrap gap-1 max-w-[65%]">
-            {[...new Set(trades.map(t => t.tagName).filter(Boolean))].map(tagName => (
-              <span key={tagName} className="text-[9px] text-slate-200 bg-slate-800/90 px-1.5 py-0.5 rounded font-semibold truncate border border-slate-700/50">
+          {/* Tags - BOTTOM-LEFT - Stacked 2x2 grid */}
+          <div className="absolute bottom-1 left-1 grid grid-cols-2 gap-0.5 max-w-[70%]">
+            {[...new Set(trades.map(t => t.tagName).filter(Boolean))].slice(0, 4).map(tagName => (
+              <span key={tagName} className="text-[8px] text-slate-200 bg-slate-800/90 px-1 py-0.5 rounded font-semibold truncate border border-slate-700/50 leading-none">
                 {tagName}
               </span>
             ))}
           </div>
+          
+          {/* "+X more" indicator if > 4 tags */}
+          {[...new Set(trades.map(t => t.tagName).filter(Boolean))].length > 4 && (
+            <div className="absolute bottom-1 left-1 translate-y-full mt-0.5">
+              <span className="text-[7px] text-slate-400">+{[...new Set(trades.map(t => t.tagName).filter(Boolean))].length - 4}</span>
+            </div>
+          )}
 
-          {/* Trade count badge - bottom-right - CIRCULAR LIKE DASHBOARD */}
+          {/* Trade count badge - BOTTOM-RIGHT - CIRCULAR LIKE DASHBOARD */}
           {trades.length > 0 && (
             <div className="absolute bottom-1 right-1 w-5 h-5 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg border border-slate-700">
               <span className="text-[9px] font-black text-white">{trades.length}</span>
