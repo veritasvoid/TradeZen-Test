@@ -25,7 +25,7 @@ export const TopNav = ({ selectedYear, onYearChange, maxYear }) => {
       <div className="max-w-[1800px] mx-auto px-6 py-3">
         <div className="flex items-center justify-between">
           
-          {/* Logo */}
+          {/* Logo - Clickable to Dashboard */}
           <button 
             onClick={() => navigate('/')}
             className="flex items-center gap-3 hover:opacity-80 transition-opacity"
@@ -38,10 +38,10 @@ export const TopNav = ({ selectedYear, onYearChange, maxYear }) => {
             </span>
           </button>
 
-          {/* Right Side: Year + Nav + Logout */}
+          {/* Right Side: Year Selector + Nav + Logout */}
           <div className="flex items-center gap-4">
             
-            {/* Year Selector (only show if provided) */}
+            {/* Year Selector - Only show on Dashboard */}
             {selectedYear && onYearChange && (
               <div className="flex items-center gap-2">
                 <button
@@ -65,7 +65,7 @@ export const TopNav = ({ selectedYear, onYearChange, maxYear }) => {
               </div>
             )}
 
-            {/* Nav Buttons - NO DASHBOARD */}
+            {/* Nav Buttons - NO DASHBOARD (Logo does that) */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => navigate('/month')}
