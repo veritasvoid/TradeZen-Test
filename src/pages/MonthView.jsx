@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMonthTrades, useUpdateTrade, useDeleteTrade, useAddTrade } from '@/hooks/useTrades';
 import { useTags } from '@/hooks/useTags';
-import { TrendingUp, Edit, Trash2, Plus, X, Camera, Upload } from 'lucide-react';
+import { TopNav } from '@/components/layout/TopNav';
+import { Edit, Trash2, Plus, X, Camera, Upload } from 'lucide-react';
 import { formatCompactCurrency, generateId } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settingsStore';
 
@@ -57,8 +58,11 @@ const MonthView = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      <div className="max-w-[1800px] mx-auto p-6 pt-6">{/* Just normal padding, no header */}
+    <>
+      <TopNav />
+      
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        <div className="max-w-[1800px] mx-auto p-6 pt-20">{/* pt-20 for TopNav */}
         
         {/* Month Title */}
         <h1 className="text-3xl font-black text-center mb-6">{monthNames[currentMonth]} {currentYear}</h1>
@@ -193,6 +197,7 @@ const MonthView = () => {
         />
       )}
     </div>
+    </>
   );
 };
 
