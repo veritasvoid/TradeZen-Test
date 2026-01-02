@@ -146,7 +146,12 @@ const MonthView = () => {
                 <StatRow label="Trades" value={trades.length} />
                 <StatRow label="Winners" value={winners.length} color="emerald" />
                 <StatRow label="Losers" value={losers.length} color="red" />
-                <StatRow label="Win Rate" value={`${winRate}%`} color={winRate >= 50 ? 'emerald' : 'red'} />
+                
+                {/* Win Rate Donut - Large */}
+                <div className="flex flex-col items-center justify-center py-4">
+                  <div className="text-xs text-slate-400 uppercase tracking-wider mb-3">Win Rate</div>
+                  <WinRateDonut winRate={winRate} size="large" />
+                </div>
               </div>
             </div>
 
@@ -868,6 +873,48 @@ const TradeAddModal = ({ date, tags, currency, onClose }) => {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+};
+
+// Win Rate Donut Chart
+const WinRateDonut = ({ winRate, size = 'normal' }) => {
+  const dimensions = size === 'large' ? { w: 120, h: 120, r: 50, stroke: 12 } : { w: 64, h: 64, r: 28, stroke: 10 };
+  const circ = 2 * Math.PI * dimensions.r;
+  const win = winRate / 100;
+  const loss = 1 - win;
+
+  return (
+    <div className={`relative flex-shrink-0`} style={{ width: dimensions.w, height: dimensions.h }}>
+      <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
+        <circle cx="50" cy="50" r={dimensions.r} fill="none" stroke="#1e293b" strokeWidth={dimensions.stroke} />
+        {winRate > 0 && (
+          <circle 
+            cx="50" 
+            cy="50" 
+            r={dimensions.r} 
+            fill="none" 
+            stroke="#10b981" 
+            strokeWidth={dimensions.stroke} 
+            strokeDasharray={`${win * circ} ${circ}`}
+          />
+        )}
+        {winRate < 100 && (
+          <circle 
+            cx="50" 
+            cy="50" 
+            r={dimensions.r} 
+            fill="none" 
+            stroke="#ef4444" 
+            strokeWidth={dimensions.stroke} 
+            strokeDasharray={`${loss * circ} ${circ}`} 
+            strokeDashoffset={`${-win * circ}`}
+          />
+        )}
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className={`font-black ${size === 'large' ? 'text-4xl' : 'text-lg'}`}>{winRate}%</span>
       </div>
     </div>
   );
