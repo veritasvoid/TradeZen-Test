@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrades } from '@/hooks/useTrades';
 import { useTags } from '@/hooks/useTags';
+import { useSettings } from '@/hooks/useSettings';
 import { TopNav } from '@/components/layout/TopNav';
 import { Loading } from '@/components/shared/Loading';
 import { calculateYearlyStats, formatCompactCurrency, formatPrivateAmount } from '@/lib/utils';
@@ -12,6 +13,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { data: allTrades = [], isLoading } = useTrades();
   const { data: tags = [], isLoading: tagsLoading } = useTags();
+  useSettings(); // Fetch settings from Google Sheets on mount
   const currency = useSettingsStore(state => state.settings.currency);
   const privacyMode = useSettingsStore(state => state.settings.privacyMode);
   const startingBalance = useSettingsStore(state => state.settings.startingBalance || 0);
