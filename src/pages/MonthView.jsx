@@ -238,19 +238,19 @@ const MonthView = () => {
 const DayCell = ({ day, trades, dayPL, isToday, isWeekend, currency, onClick, onEditTrade }) => {
   const hasData = trades.length > 0;
   
-  // Weekend/Market Closed styling - darker with blue tint
-  const weekendBg = isWeekend ? 'bg-blue-950/20 border-blue-900/30' : '';
+  // REVERSED: Weekdays are blue-tinted (market open), weekends are normal gray (market closed)
+  const weekdayBg = !isWeekend ? 'bg-blue-950/20 border-blue-900/30' : '';
   
   const bgColor = hasData 
     ? (dayPL > 0 ? 'bg-emerald-900/20 border-emerald-500/30' : 'bg-red-900/20 border-red-500/30')
-    : (isWeekend ? weekendBg : 'bg-slate-800/20 border-slate-700/30');
+    : (isWeekend ? 'bg-slate-800/20 border-slate-700/30' : weekdayBg);
 
   return (
     <div 
       onClick={onClick}
       className={`aspect-square rounded-lg border ${bgColor} ${isToday ? 'ring-2 ring-blue-500' : ''} p-2 relative hover:bg-slate-700/30 transition-all cursor-pointer`}
     >
-      <div className={`text-sm font-semibold ${isWeekend ? 'text-blue-400/60' : 'text-slate-300'}`}>{day}</div>
+      <div className={`text-sm font-semibold ${!isWeekend ? 'text-blue-400/60' : 'text-slate-300'}`}>{day}</div>
 
       {hasData && (
         <>
