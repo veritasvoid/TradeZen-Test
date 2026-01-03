@@ -108,8 +108,8 @@ const Dashboard = () => {
                       </div>
                       
                       {/* Progress Bar - THICKER and SHORTER */}
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="flex-1 h-2.5 bg-slate-900 rounded-full overflow-hidden mr-8">
+                      <div className="mb-1 mr-8">
+                        <div className="h-2.5 bg-slate-900 rounded-full overflow-hidden">
                           <div 
                             className={`h-full ${tag.winRate >= 80 ? 'bg-emerald-500' : tag.winRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
                             style={{ width: `${tag.winRate}%` }}
@@ -117,8 +117,8 @@ const Dashboard = () => {
                         </div>
                       </div>
                       
-                      {/* Win Rate % - Positioned to never overlap */}
-                      <div className="text-xs font-bold text-slate-300 text-left">{tag.winRate}%</div>
+                      {/* Win Rate % - Centered to progress bar */}
+                      <div className="text-xs font-bold text-slate-300 text-center mr-8">{tag.winRate}%</div>
                       
                       {/* Trade Count Badge - Bottom Right Corner */}
                       <div className="absolute bottom-1.5 right-1.5 w-5 h-5 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg border border-slate-700">
@@ -174,7 +174,7 @@ const Dashboard = () => {
                         {chartData.map((entry, i) => (
                           <Cell key={i} fill={entry.pl >= 0 ? '#10b981' : '#ef4444'} />
                         ))}
-                        <LabelList dataKey="pl" position="top" formatter={(v) => v !== 0 ? v : ''} style={{ fill: '#e2e8f0', fontSize: 10, fontWeight: 700 }} />
+                        <LabelList dataKey="pl" position="top" formatter={(v) => v !== 0 ? v.toLocaleString() : ''} style={{ fill: '#e2e8f0', fontSize: 10, fontWeight: 700 }} />
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
