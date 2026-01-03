@@ -39,6 +39,23 @@ export const formatCompactCurrency = (amount, symbol = '$') => {
   return `${prefix}${symbol}${formatted}`;
 };
 
+// Format amount with privacy mode support
+export const formatPrivateAmount = (amount, currency = '$', privacyMode = false) => {
+  if (privacyMode) {
+    return '****';
+  }
+  return `${currency}${Math.abs(amount).toLocaleString()}`;
+};
+
+// Format amount with sign and privacy support
+export const formatPrivateAmountWithSign = (amount, currency = '$', privacyMode = false) => {
+  if (privacyMode) {
+    return '****';
+  }
+  const prefix = amount >= 0 ? '+' : '-';
+  return `${prefix}${currency}${Math.abs(amount).toLocaleString()}`;
+};
+
 // Format date to display string
 export const formatDate = (date, formatStr = 'MMM d, yyyy') => {
   if (typeof date === 'string') {
