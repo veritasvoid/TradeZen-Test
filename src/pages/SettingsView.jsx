@@ -112,11 +112,11 @@ const SettingsView = () => {
   return (
     <>
       <Header title="Settings" />
-      <div className="p-4 max-w-3xl mx-auto space-y-6">
+      <div className="p-[1vw] max-w-3xl mx-auto space-y-6">
         {/* Appearance */}
         <Section title="Appearance">
           <SettingRow label="Theme">
-            <div className="text-text-secondary text-sm">
+            <div className="text-text-secondary text-[0.85vw]">
               Dark (Always On)
             </div>
           </SettingRow>
@@ -128,7 +128,7 @@ const SettingsView = () => {
             <select
               value={settings.currency}
               onChange={(e) => updateSettings({ currency: e.target.value })}
-              className="input py-2"
+              className="input py-[0.5vw]"
             >
               {CURRENCIES.map(curr => (
                 <option key={curr.code} value={curr.symbol}>
@@ -142,7 +142,7 @@ const SettingsView = () => {
         {/* Data Management */}
         <Section title="Data Management">
           <SettingRow label="Storage">
-            <div className="text-text-secondary text-sm">
+            <div className="text-text-secondary text-[0.85vw]">
               Google Sheets & Drive
             </div>
           </SettingRow>
@@ -151,7 +151,7 @@ const SettingsView = () => {
             <button
               onClick={() => setShowClearModal(true)}
               disabled={yearsWithData.length === 0}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center gap-2 font-semibold"
+              className="px-[1vw] py-[0.5vw] bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-[0.5vw] transition-all flex items-center gap-[0.5vw] font-semibold"
             >
               <Trash2 size={16} />
               Delete Year Data
@@ -162,7 +162,7 @@ const SettingsView = () => {
         {/* About */}
         <Section title="About">
           <SettingRow label="Version">
-            <div className="text-text-secondary text-sm">
+            <div className="text-text-secondary text-[0.85vw]">
               1.0.0
             </div>
           </SettingRow>
@@ -171,17 +171,17 @@ const SettingsView = () => {
 
       {/* Clear Data Modal */}
       {showClearModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 rounded-2xl border border-red-500/50 max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-red-600/20 rounded-full">
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-[1vw]">
+          <div className="bg-slate-900 rounded-[1vw] border border-red-500/50 max-w-md w-full p-[1.5vw]">
+            <div className="flex items-center gap-[0.75vw] mb-[1.5vw]">
+              <div className="p-[0.75vw] bg-red-600/20 rounded-full">
                 <AlertTriangle size={24} className="text-red-500" />
               </div>
-              <h3 className="text-2xl font-black text-red-500">Delete Data</h3>
+              <h3 className="text-[1.5vw] font-black text-red-500">Delete Data</h3>
             </div>
 
-            <div className="mb-6">
-              <p className="text-slate-300 mb-4">
+            <div className="mb-[1.5vw]">
+              <p className="text-slate-300 mb-[1vw]">
                 Select which year(s) you want to delete:
               </p>
 
@@ -197,7 +197,7 @@ const SettingsView = () => {
                     return (
                       <label
                         key={year}
-                        className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        className={`flex items-center gap-[0.75vw] p-[1vw] rounded-[0.5vw] border-2 cursor-pointer transition-all ${
                           selectedYears.includes(year)
                             ? 'border-red-500 bg-red-500/10'
                             : 'border-slate-700 hover:border-slate-600'
@@ -210,8 +210,8 @@ const SettingsView = () => {
                           className="w-5 h-5"
                         />
                         <div className="flex-1">
-                          <div className="font-bold text-lg">{year}</div>
-                          <div className="text-sm text-slate-400">
+                          <div className="font-bold text-[1.15vw]">{year}</div>
+                          <div className="text-[0.85vw] text-slate-400">
                             {yearTrades.length} trade{yearTrades.length !== 1 ? 's' : ''}
                           </div>
                         </div>
@@ -225,29 +225,29 @@ const SettingsView = () => {
               )}
 
               {selectedYears.length > 0 && (
-                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-                  <p className="text-red-400 text-sm font-semibold">
+                <div className="mt-[1vw] p-[1vw] bg-red-500/10 border border-red-500/30 rounded-[0.5vw]">
+                  <p className="text-red-400 text-[0.85vw] font-semibold">
                     ⚠️ This will permanently delete all trades, tags, and screenshots for {selectedYears.join(', ')}
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-[0.75vw]">
               <button
                 onClick={() => {
                   setShowClearModal(false);
                   setSelectedYears([]);
                 }}
                 disabled={isClearing}
-                className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 rounded-lg transition-all font-semibold"
+                className="flex-1 px-[1vw] py-[0.75vw] bg-slate-800 hover:bg-slate-700 disabled:opacity-50 rounded-[0.5vw] transition-all font-semibold"
               >
                 Cancel
               </button>
               <button
                 onClick={handleClearData}
                 disabled={selectedYears.length === 0 || isClearing}
-                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-lg transition-all font-semibold flex items-center justify-center gap-2"
+                className="flex-1 px-[1vw] py-[0.75vw] bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-[0.5vw] transition-all font-semibold flex items-center justify-center gap-[0.5vw]"
               >
                 {isClearing ? (
                   <>Deleting...</>
@@ -268,7 +268,7 @@ const SettingsView = () => {
 
 const Section = ({ title, children }) => (
   <div className="card">
-    <h2 className="text-lg font-bold mb-4 pb-3 border-b border-border">
+    <h2 className="text-[1.15vw] font-bold mb-[1vw] pb-3 border-b border-border">
       {title}
     </h2>
     <div className="space-y-4">
@@ -278,8 +278,8 @@ const Section = ({ title, children }) => (
 );
 
 const SettingRow = ({ label, children }) => (
-  <div className="flex items-center justify-between py-2">
-    <span className="text-sm font-medium">{label}</span>
+  <div className="flex items-center justify-between py-[0.5vw]">
+    <span className="text-[0.85vw] font-medium">{label}</span>
     <div>{children}</div>
   </div>
 );
