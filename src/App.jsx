@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import { initializeSettings } from '@/stores/settingsStore';
 import { AppShell } from '@/components/layout/AppShell';
 import { Loading } from '@/components/shared/Loading';
 
@@ -13,12 +14,32 @@ const SettingsView = React.lazy(() => import('@/pages/SettingsView'));
 
 function App() {
   const { isAuthenticated, isInitializing, initialize } = useAuthStore();
+  const [settingsLoaded, setSettingsLoaded] = React.useState(false);
 
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  if (isInitializing) {
+  // Load settings from Google Sheets after authentication
+  useEffect(() => {
+    if (isAuthenticated && !settingsLoaded) {
+      const loadSettings = async () => {
+        try {
+          await initializeSettings();
+          console.log('✅ Settings loaded from Google Sheets');
+        } catch (error) {
+          console.error('Failed to load settings:', error);
+        } finally {
+          setSettingsLoaded(true);
+        }
+      };
+      
+      // Wait a bit for GAPI to be ready
+      setTimeout(loadSettings, 500);
+    }
+  }, [isAuthenticated, settingsLoaded]);
+
+  if (isInitializing || (isAuthenticated && !settingsLoaded)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loading type="spinner" />
@@ -43,8 +64,8 @@ function App() {
           <Route path="month/:year/:month" element={<MonthView />} />
           <Route path="tags" element={<TagsView />} />
           <Route path="settings" element={<SettingsView />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </React.Suspense>
   );
