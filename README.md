@@ -146,3 +146,5 @@ Built by veritasvoid
 ---
 
 **Note**: This is a personal project. Your trading data is private and stored only in your Google account.
+
+
