@@ -26,7 +26,27 @@ const Dashboard = () => {
   const currentMonth = new Date().getMonth();
   
   const [selectedYear, setSelectedYear] = React.useState(currentYear);
+  
+  // NEW: Modal states
+  const [showTagModal, setShowTagModal] = React.useState(false);
+  const [selectedTagForModal, setSelectedTagForModal] = React.useState(null);
+  const [showBestModal, setShowBestModal] = React.useState(false);
+  const [showWorstModal, setShowWorstModal] = React.useState(false);
+  const [showImageGallery, setShowImageGallery] = React.useState(false);
+  const [selectedImageTrade, setSelectedImageTrade] = React.useState(null);
+  
   const maxYear = currentYear;
+  
+  // Handler functions for modals
+  const handleViewImage = (trade) => {
+    setSelectedImageTrade(trade);
+    setShowImageGallery(true);
+  };
+
+  const handleViewTagTrades = (tag) => {
+    setSelectedTagForModal(tag);
+    setShowTagModal(true);
+  };
   
   const trades = allTrades.filter(trade => {
     const tradeYear = parseInt(trade.date.split('-')[0]);
