@@ -7,10 +7,6 @@ import { TopNav } from '@/components/layout/TopNav';
 import { Loading } from '@/components/shared/Loading';
 import { calculateYearlyStats, formatCompactCurrency, formatPrivateAmount } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { ImageGalleryModal } from '@/components/modals/ImageGalleryModal';
-import { TagTradesModal } from '@/components/modals/TagTradesModal';
-import { BestWorstTradeModal } from '@/components/modals/BestWorstTradeModal';
-
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, LabelList } from 'recharts';
 
 const Dashboard = () => {
@@ -26,27 +22,7 @@ const Dashboard = () => {
   const currentMonth = new Date().getMonth();
   
   const [selectedYear, setSelectedYear] = React.useState(currentYear);
-  
-  // NEW: Modal states
-  const [showTagModal, setShowTagModal] = React.useState(false);
-  const [selectedTagForModal, setSelectedTagForModal] = React.useState(null);
-  const [showBestModal, setShowBestModal] = React.useState(false);
-  const [showWorstModal, setShowWorstModal] = React.useState(false);
-  const [showImageGallery, setShowImageGallery] = React.useState(false);
-  const [selectedImageTrade, setSelectedImageTrade] = React.useState(null);
-  
   const maxYear = currentYear;
-  
-  // Handler functions for modals
-  const handleViewImage = (trade) => {
-    setSelectedImageTrade(trade);
-    setShowImageGallery(true);
-  };
-
-  const handleViewTagTrades = (tag) => {
-    setSelectedTagForModal(tag);
-    setShowTagModal(true);
-  };
   
   const trades = allTrades.filter(trade => {
     const tradeYear = parseInt(trade.date.split('-')[0]);
@@ -82,7 +58,7 @@ const Dashboard = () => {
     return (
       <>
         <TopNav selectedYear={selectedYear} onYearChange={setSelectedYear} maxYear={maxYear} />
-        <div className="p-6 pt-20"><Loading type="skeleton-grid" /></div>
+        <div className="p-[1.5vw] pt-20"><Loading type="skeleton-grid" /></div>
       </>
     );
   }
@@ -92,54 +68,50 @@ const Dashboard = () => {
       <TopNav selectedYear={selectedYear} onYearChange={setSelectedYear} maxYear={maxYear} />
       
       <div className="h-screen overflow-hidden flex flex-col pt-20">
-        <div className="px-3 pb-2">
-          <div className="grid grid-cols-12 gap-2">
+        <div className="px-[0.75vw] pb-2">
+          <div className="grid grid-cols-12 gap-[0.5vw]">
             
             {/* Win Rate - NO CHART, just number */}
-            <div className="col-span-1 card p-3 flex flex-col items-center justify-center">
-              <div className="text-xs text-slate-400 mb-1">WIN RATE</div>
-              <div className="text-3xl font-black text-emerald-400">{overallWinRate}%</div>
+            <div className="col-span-1 card p-[0.75vw] flex flex-col items-center justify-center">
+              <div className="text-[0.65vw] text-slate-400 mb-[0.25vw]">WIN RATE</div>
+              <div className="text-[1.9vw] font-black text-emerald-400">{overallWinRate}%</div>
             </div>
 
             {/* Trades */}
-            <div className="col-span-1 card p-3 flex flex-col items-center justify-center">
-              <div className="text-xs text-slate-400 mb-1">TRADES</div>
-              <div className="text-3xl font-black">{totalTrades}</div>
+            <div className="col-span-1 card p-[0.75vw] flex flex-col items-center justify-center">
+              <div className="text-[0.65vw] text-slate-400 mb-[0.25vw]">TRADES</div>
+              <div className="text-[1.9vw] font-black">{totalTrades}</div>
             </div>
 
             {/* Account Balance (combines old Account + Yearly P&L) */}
-            <div className="col-span-2 card p-3 flex flex-col items-center justify-center">
-              <div className="text-xs text-slate-400 mb-1">ACCOUNT VALUE</div>
-              <div className={`text-2xl font-black ${accountBalance >= startingBalance ? 'text-emerald-400' : 'text-red-400'}`}>
+            <div className="col-span-2 card p-[0.75vw] flex flex-col items-center justify-center">
+              <div className="text-[0.65vw] text-slate-400 mb-[0.25vw]">ACCOUNT VALUE</div>
+              <div className={`text-[1.5vw] font-black ${accountBalance >= startingBalance ? 'text-emerald-400' : 'text-red-400'}`}>
                 {formatPrivateAmount(accountBalance, currency, privacyMode)}
               </div>
             </div>
 
             {/* Strategy Performance - NO HEADER */}
-            <div className="col-span-8 card p-3">
+            <div className="col-span-8 card p-[0.75vw]">
               {tagPerformance.length > 0 ? (
-                <div className="flex gap-3 h-full items-center">
+                <div className="flex gap-[0.75vw] h-full items-center">
                   {tagPerformance.map(tag => (
-                    <div 
-                      key={tag.tagId} 
-                      className="relative flex-1 bg-slate-800/50 rounded-xl p-2.5 border border-slate-700/30 cursor-pointer hover:bg-slate-700/50 hover:scale-105 transition-all"
-                      onClick={() => handleViewTagTrades(tag)}
-                    >
+                    <div key={tag.tagId} className="relative flex-1 bg-slate-800/50 rounded-[0.75vw] p-[0.5vw].5 border border-slate-700/30">
                       {/* Emoji + Tag Name */}
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <span className="text-xl">{tag.tagEmoji}</span>
+                      <div className="flex items-center gap-[0.25vw].5 mb-[0.25vw].5">
+                        <span className="text-[1.25vw]">{tag.tagEmoji}</span>
                         <div className="text-[11px] font-bold truncate" style={{ color: tag.tagColor }}>
                           {tag.tagName}
                         </div>
                       </div>
                       
                       {/* P&L Amount - Centered */}
-                      <div className={`text-center text-base font-black mb-2 ${tag.totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <div className={`text-center text-[1vw] font-black mb-[0.5vw] ${tag.totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         {formatPrivateAmount(tag.totalPL, currency, privacyMode)}
                       </div>
                       
                       {/* Progress Bar - THICKER and SHORTER */}
-                      <div className="mb-1 mr-8">
+                      <div className="mb-[0.25vw] mr-8">
                         <div className="h-2.5 bg-slate-900 rounded-full overflow-hidden">
                           <div 
                             className={`h-full ${tag.winRate >= 80 ? 'bg-emerald-500' : tag.winRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
@@ -149,7 +121,7 @@ const Dashboard = () => {
                       </div>
                       
                       {/* Win Rate % - Centered to progress bar */}
-                      <div className="text-xs font-bold text-slate-300 text-center mr-8">{tag.winRate}%</div>
+                      <div className="text-[0.65vw] font-bold text-slate-300 text-center mr-8">{tag.winRate}%</div>
                       
                       {/* Trade Count Badge - Bottom Right Corner */}
                       <div className="absolute bottom-1.5 right-1.5 w-5 h-5 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg border border-slate-700">
@@ -159,49 +131,43 @@ const Dashboard = () => {
                   ))}
                 </div>
               ) : (
-                <div className="text-slate-500 text-sm text-center">No tagged trades</div>
+                <div className="text-slate-500 text-[0.85vw] text-center">No tagged trades</div>
               )}
             </div>
           </div>
         </div>
 
-        <div className="flex-1 px-3 pb-3 min-h-0">
-          <div className="h-full grid grid-cols-12 gap-2">
+        <div className="flex-1 px-[0.75vw] pb-3 min-h-0">
+          <div className="h-full grid grid-cols-12 gap-[0.5vw]">
             
             {/* METRICS - 4 separate boxes in a column */}
-            <div className="col-span-2 grid grid-rows-4 gap-2">
-              <div className="card p-3 flex flex-col items-center justify-center">
-                <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">AVG WINNER</div>
-                <div className="text-2xl font-black text-emerald-400">{formatPrivateAmount(avgWinner, currency, privacyMode)}</div>
+            <div className="col-span-2 grid grid-rows-4 gap-[0.5vw]">
+              <div className="card p-[0.75vw] flex flex-col items-center justify-center">
+                <div className="text-[0.65vw] text-slate-400 uppercase tracking-wider mb-[0.5vw]">AVG WINNER</div>
+                <div className="text-[1.5vw] font-black text-emerald-400">{formatPrivateAmount(avgWinner, currency, privacyMode)}</div>
               </div>
               
-              <div className="card p-3 flex flex-col items-center justify-center">
-                <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">AVG LOSER</div>
-                <div className="text-2xl font-black text-red-400">{formatPrivateAmount(Math.abs(avgLoser), currency, privacyMode)}</div>
+              <div className="card p-[0.75vw] flex flex-col items-center justify-center">
+                <div className="text-[0.65vw] text-slate-400 uppercase tracking-wider mb-[0.5vw]">AVG LOSER</div>
+                <div className="text-[1.5vw] font-black text-red-400">{formatPrivateAmount(Math.abs(avgLoser), currency, privacyMode)}</div>
               </div>
               
-              <div 
-                className="card p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800/70 transition-all"
-                onClick={() => setShowBestModal(true)}
-              >
-                <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">BEST</div>
-                <div className="text-2xl font-black text-emerald-400">{formatPrivateAmount(bestTrade, currency, privacyMode)}</div>
+              <div className="card p-[0.75vw] flex flex-col items-center justify-center">
+                <div className="text-[0.65vw] text-slate-400 uppercase tracking-wider mb-[0.5vw]">BEST</div>
+                <div className="text-[1.5vw] font-black text-emerald-400">{formatPrivateAmount(bestTrade, currency, privacyMode)}</div>
               </div>
               
-              <div 
-                className="card p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800/70 transition-all"
-                onClick={() => setShowWorstModal(true)}
-              >
-                <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">WORST</div>
-                <div className="text-2xl font-black text-red-400">{formatPrivateAmount(Math.abs(worstTrade), currency, privacyMode)}</div>
+              <div className="card p-[0.75vw] flex flex-col items-center justify-center">
+                <div className="text-[0.65vw] text-slate-400 uppercase tracking-wider mb-[0.5vw]">WORST</div>
+                <div className="text-[1.5vw] font-black text-red-400">{formatPrivateAmount(Math.abs(worstTrade), currency, privacyMode)}</div>
               </div>
             </div>
 
-            <div className="col-span-10 flex flex-col gap-2 min-h-0">
+            <div className="col-span-10 flex flex-col gap-[0.5vw] min-h-0">
               
               {/* Chart - NO $ SIGN IN LABELS */}
-              <div className="flex-[3] card p-4 min-h-0">
-                <div className="text-center text-xl font-black mb-2">{selectedYear}</div>
+              <div className="flex-[3] card p-[1vw] min-h-0">
+                <div className="text-center text-[1.25vw] font-black mb-[0.5vw]">{selectedYear}</div>
                 <div className="h-[calc(100%-2rem)]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData} margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
@@ -224,8 +190,8 @@ const Dashboard = () => {
               </div>
 
               {/* Monthly Tiles */}
-              <div className="flex-[2] card p-3 min-h-0">
-                <div className="h-full grid grid-cols-6 gap-2">
+              <div className="flex-[2] card p-[0.75vw] min-h-0">
+                <div className="h-full grid grid-cols-6 gap-[0.5vw]">
                   {yearlyStats.map((m) => (
                     <MonthTile
                       key={m.month}
@@ -271,8 +237,8 @@ const MonthTile = ({ month, stats, isCurrentMonth, onClick }) => {
   const hasData = stats.tradeCount > 0;
   
   return (
-    <div onClick={onClick} className={`relative bg-slate-800/30 rounded-lg p-2 cursor-pointer hover:bg-slate-800/50 transition-all flex flex-col items-center justify-center ${isCurrentMonth ? 'ring-2 ring-blue-500' : ''}`}>
-      <div className="text-xs text-slate-400 font-semibold mb-2">{month}</div>
+    <div onClick={onClick} className={`relative bg-slate-800/30 rounded-[0.5vw] p-[0.5vw] cursor-pointer hover:bg-slate-800/50 transition-all flex flex-col items-center justify-center ${isCurrentMonth ? 'ring-2 ring-blue-500' : ''}`}>
+      <div className="text-[0.65vw] text-slate-400 font-semibold mb-[0.5vw]">{month}</div>
       
       {/* LARGER Donut - 70px (was 56px) */}
       <div className="relative w-[70px] h-[70px]">
@@ -287,8 +253,8 @@ const MonthTile = ({ month, stats, isCurrentMonth, onClick }) => {
           {!hasData && <circle cx="18" cy="18" r="16" fill="none" stroke="#475569" strokeWidth="3.5" />}
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          {/* LARGER % text - text-sm (was text-xs) */}
-          <span className={`text-sm font-black ${!hasData ? 'text-slate-600' : ''}`}>{wr}%</span>
+          {/* LARGER % text - text-[0.85vw] (was text-[0.65vw]) */}
+          <span className={`text-[0.85vw] font-black ${!hasData ? 'text-slate-600' : ''}`}>{wr}%</span>
         </div>
       </div>
       
@@ -301,91 +267,5 @@ const MonthTile = ({ month, stats, isCurrentMonth, onClick }) => {
     </div>
   );
 };
-
-
-      {showTagModal && selectedTagForModal && (
-        <TagTradesModal
-          tag={selectedTagForModal}
-          trades={trades.filter(t => t.tagId === selectedTagForModal.tagId)}
-          scope={`${selectedYear}`}
-          currency={currency}
-          privacyMode={privacyMode}
-          onClose={() => {
-            setShowTagModal(false);
-            setSelectedTagForModal(null);
-          }}
-          onEditTrade={(trade) => {
-            navigate(`/month/${trade.date.split('-')[0]}/${parseInt(trade.date.split('-')[1]) - 1}`);
-          }}
-          onDeleteTrade={async (tradeId) => {
-            if (!confirm('Delete this trade?')) return;
-          }}
-          onViewImage={(trade) => {
-            const imageUrl = `https://drive.google.com/thumbnail?id=${trade.driveImageId}&sz=w1200`;
-            handleViewImage({ ...trade, imageUrl });
-          }}
-        />
-      )}
-
-      {showBestModal && bestTrade !== 0 && (
-        <BestWorstTradeModal
-          trade={trades.find(t => t.amount === bestTrade)}
-          type="best"
-          year={selectedYear}
-          comparisonText={`${(bestTrade / avgWinner).toFixed(1)}x your average winner`}
-          currency={currency}
-          privacyMode={privacyMode}
-          onClose={() => setShowBestModal(false)}
-          onEdit={() => {
-            const trade = trades.find(t => t.amount === bestTrade);
-            navigate(`/month/${trade.date.split('-')[0]}/${parseInt(trade.date.split('-')[1]) - 1}`);
-          }}
-          onDelete={async () => {
-            if (!confirm('Delete your best trade?')) return;
-            setShowBestModal(false);
-          }}
-          onViewInMonth={() => {
-            const trade = trades.find(t => t.amount === bestTrade);
-            navigate(`/month/${trade.date.split('-')[0]}/${parseInt(trade.date.split('-')[1]) - 1}`);
-          }}
-        />
-      )}
-
-      {showWorstModal && worstTrade !== 0 && (
-        <BestWorstTradeModal
-          trade={trades.find(t => t.amount === worstTrade)}
-          type="worst"
-          year={selectedYear}
-          comparisonText={`${(Math.abs(worstTrade) / Math.abs(avgLoser)).toFixed(1)}x your average loser`}
-          currency={currency}
-          privacyMode={privacyMode}
-          onClose={() => setShowWorstModal(false)}
-          onEdit={() => {
-            const trade = trades.find(t => t.amount === worstTrade);
-            navigate(`/month/${trade.date.split('-')[0]}/${parseInt(trade.date.split('-')[1]) - 1}`);
-          }}
-          onDelete={async () => {
-            if (!confirm('Delete this trade?')) return;
-            setShowWorstModal(false);
-          }}
-          onViewInMonth={() => {
-            const trade = trades.find(t => t.amount === worstTrade);
-            navigate(`/month/${trade.date.split('-')[0]}/${parseInt(trade.date.split('-')[1]) - 1}`);
-          }}
-        />
-      )}
-
-      {showImageGallery && selectedImageTrade && (
-        <ImageGalleryModal
-          imageUrl={selectedImageTrade.imageUrl}
-          trade={selectedImageTrade}
-          currency={currency}
-          privacyMode={privacyMode}
-          onClose={() => {
-            setShowImageGallery(false);
-            setSelectedImageTrade(null);
-          }}
-        />
-      )}
 
 export default Dashboard;
