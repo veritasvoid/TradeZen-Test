@@ -241,67 +241,6 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-    </>
-  );
-};
-
-const calculateTagPerformance = (trades, tags) => {
-  const tagStats = {};
-  trades.forEach(trade => {
-    const tagId = trade.tagId || 'none';
-    if (tagId === 'none') return;
-    if (!tagStats[tagId]) {
-      tagStats[tagId] = {
-        tagId, tagName: trade.tagName, tagColor: trade.tagColor, tagEmoji: trade.tagEmoji,
-        totalPL: 0, trades: 0, wins: 0, losses: 0
-      };
-    }
-    tagStats[tagId].totalPL += trade.amount;
-    tagStats[tagId].trades += 1;
-    if (trade.amount > 0) tagStats[tagId].wins += 1;
-    if (trade.amount < 0) tagStats[tagId].losses += 1;
-  });
-  return Object.values(tagStats)
-    .map(tag => ({ ...tag, winRate: tag.trades > 0 ? Math.round((tag.wins / tag.trades) * 100) : 0 }))
-    .sort((a, b) => b.totalPL - a.totalPL);
-};
-
-const MonthTile = ({ month, stats, isCurrentMonth, onClick }) => {
-  const wr = stats.tradeCount > 0 ? Math.round((stats.winCount / stats.tradeCount) * 100) : 0;
-  const hasData = stats.tradeCount > 0;
-  
-  return (
-    <div onClick={onClick} className={`relative bg-slate-800/30 rounded-lg p-2 cursor-pointer hover:bg-slate-800/50 transition-all flex flex-col items-center justify-center ${isCurrentMonth ? 'ring-2 ring-blue-500' : ''}`}>
-      <div className="text-xs text-slate-400 font-semibold mb-2">{month}</div>
-      
-      {/* LARGER Donut - 70px (was 56px) */}
-      <div className="relative w-[70px] h-[70px]">
-        <svg viewBox="0 0 36 36" className="transform -rotate-90">
-          <circle cx="18" cy="18" r="16" fill="none" stroke="#1e293b" strokeWidth="3.5" />
-          {hasData && (
-            <>
-              {wr > 0 && <circle cx="18" cy="18" r="16" fill="none" stroke="#10b981" strokeWidth="3.5" strokeDasharray={`${(wr/100) * 100} 100`} />}
-              {wr < 100 && <circle cx="18" cy="18" r="16" fill="none" stroke="#ef4444" strokeWidth="3.5" strokeDasharray={`${((100-wr)/100) * 100} 100`} strokeDashoffset={`${-(wr/100) * 100}`} />}
-            </>
-          )}
-          {!hasData && <circle cx="18" cy="18" r="16" fill="none" stroke="#475569" strokeWidth="3.5" />}
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          {/* LARGER % text - text-sm (was text-xs) */}
-          <span className={`text-sm font-black ${!hasData ? 'text-slate-600' : ''}`}>{wr}%</span>
-        </div>
-      </div>
-      
-      {/* Trade Count Badge - Bottom Right Corner */}
-      {hasData && (
-        <div className="absolute bottom-2 right-2 w-7 h-7 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg border border-slate-700">
-          <span className="text-[11px] font-black text-white">{stats.tradeCount}</span>
-        </div>
-      )}
-    </div>
-  );
-};
-
 
       {showTagModal && selectedTagForModal && (
         <TagTradesModal
@@ -387,5 +326,67 @@ const MonthTile = ({ month, stats, isCurrentMonth, onClick }) => {
           }}
         />
       )}
+
+    </>
+  );
+};
+
+const calculateTagPerformance = (trades, tags) => {
+  const tagStats = {};
+  trades.forEach(trade => {
+    const tagId = trade.tagId || 'none';
+    if (tagId === 'none') return;
+    if (!tagStats[tagId]) {
+      tagStats[tagId] = {
+        tagId, tagName: trade.tagName, tagColor: trade.tagColor, tagEmoji: trade.tagEmoji,
+        totalPL: 0, trades: 0, wins: 0, losses: 0
+      };
+    }
+    tagStats[tagId].totalPL += trade.amount;
+    tagStats[tagId].trades += 1;
+    if (trade.amount > 0) tagStats[tagId].wins += 1;
+    if (trade.amount < 0) tagStats[tagId].losses += 1;
+  });
+  return Object.values(tagStats)
+    .map(tag => ({ ...tag, winRate: tag.trades > 0 ? Math.round((tag.wins / tag.trades) * 100) : 0 }))
+    .sort((a, b) => b.totalPL - a.totalPL);
+};
+
+const MonthTile = ({ month, stats, isCurrentMonth, onClick }) => {
+  const wr = stats.tradeCount > 0 ? Math.round((stats.winCount / stats.tradeCount) * 100) : 0;
+  const hasData = stats.tradeCount > 0;
+  
+  return (
+    <div onClick={onClick} className={`relative bg-slate-800/30 rounded-lg p-2 cursor-pointer hover:bg-slate-800/50 transition-all flex flex-col items-center justify-center ${isCurrentMonth ? 'ring-2 ring-blue-500' : ''}`}>
+      <div className="text-xs text-slate-400 font-semibold mb-2">{month}</div>
+      
+      {/* LARGER Donut - 70px (was 56px) */}
+      <div className="relative w-[70px] h-[70px]">
+        <svg viewBox="0 0 36 36" className="transform -rotate-90">
+          <circle cx="18" cy="18" r="16" fill="none" stroke="#1e293b" strokeWidth="3.5" />
+          {hasData && (
+            <>
+              {wr > 0 && <circle cx="18" cy="18" r="16" fill="none" stroke="#10b981" strokeWidth="3.5" strokeDasharray={`${(wr/100) * 100} 100`} />}
+              {wr < 100 && <circle cx="18" cy="18" r="16" fill="none" stroke="#ef4444" strokeWidth="3.5" strokeDasharray={`${((100-wr)/100) * 100} 100`} strokeDashoffset={`${-(wr/100) * 100}`} />}
+            </>
+          )}
+          {!hasData && <circle cx="18" cy="18" r="16" fill="none" stroke="#475569" strokeWidth="3.5" />}
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          {/* LARGER % text - text-sm (was text-xs) */}
+          <span className={`text-sm font-black ${!hasData ? 'text-slate-600' : ''}`}>{wr}%</span>
+        </div>
+      </div>
+      
+      {/* Trade Count Badge - Bottom Right Corner */}
+      {hasData && (
+        <div className="absolute bottom-2 right-2 w-7 h-7 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg border border-slate-700">
+          <span className="text-[11px] font-black text-white">{stats.tradeCount}</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 export default Dashboard;
