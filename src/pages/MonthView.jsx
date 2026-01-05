@@ -7,6 +7,9 @@ import { TopNav } from '@/components/layout/TopNav';
 import { Edit, Trash2, Plus, X, Camera, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCompactCurrency, generateId, formatPrivateAmount, formatPrivateAmountWithSign } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { ImageGalleryModal } from '@/components/modals/ImageGalleryModal';
+import { TagTradesModal } from '@/components/modals/TagTradesModal';
+
 
 const MonthView = () => {
   const { year: yearParam, month: monthParam } = useParams();
@@ -17,6 +20,7 @@ const MonthView = () => {
   
   const { data: trades = [], isLoading } = useMonthTrades(currentYear, currentMonth);
   const { data: tags = [] } = useTags();
+  const deleteTrade = useDeleteTrade();
   useSettings(); // Fetch settings from Google Sheets on mount
   const currency = useSettingsStore(state => state.settings.currency);
   const privacyMode = useSettingsStore(state => state.settings.privacyMode);
@@ -49,6 +53,14 @@ const MonthView = () => {
 
   const [showDayTradesModal, setShowDayTradesModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
+  // NEW: Image gallery state
+  const [showImageGallery, setShowImageGallery] = useState(false);
+  const [selectedImageTrade, setSelectedImageTrade] = useState(null);
+  
+  // NEW: Tag trades modal state
+  const [showTagModal, setShowTagModal] = useState(false);
+  const [selectedTagForModal, setSelectedTagForModal] = useState(null);
+
 
   const handleDayClick = (day) => {
     setSelectedDay(day);
@@ -60,28 +72,39 @@ const MonthView = () => {
     setShowEditModal(true);
   };
 
+  const handleViewImage = (trade) => {
+    setSelectedImageTrade(trade);
+    setShowImageGallery(true);
+  };
+
+  const handleViewTagTrades = (tag) => {
+    setSelectedTagForModal(tag);
+    setShowTagModal(true);
+  };
+
+
   return (
     <>
       <TopNav />
       
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-        <div className="max-w-[1800px] mx-auto p-[1.5vw] pt-20">{/* pt-20 for TopNav */}
+        <div className="max-w-[1800px] mx-auto p-6 pt-20">{/* pt-20 for TopNav */}
         
         {/* Month Title with Navigation */}
-        <div className="flex items-center justify-center gap-[1vw] mb-[1.5vw]">
+        <div className="flex items-center justify-center gap-4 mb-6">
           <button
             onClick={() => {
               const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
               const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
               navigate(`/month/${prevYear}/${prevMonth}`);
             }}
-            className="group flex items-center gap-[0.5vw] px-[1vw] py-[0.5vw] bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-purple-600 rounded-[0.75vw] transition-all border border-slate-700/50 shadow-lg hover:shadow-xl hover:scale-105"
+            className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-purple-600 rounded-xl transition-all border border-slate-700/50 shadow-lg hover:shadow-xl hover:scale-105"
           >
             <ChevronLeft size={20} />
             <span className="font-semibold">Prev</span>
           </button>
           
-          <h1 className="text-[1.9vw] font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
             {monthNames[currentMonth]} {currentYear}
           </h1>
           
@@ -91,29 +114,29 @@ const MonthView = () => {
               const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
               navigate(`/month/${nextYear}/${nextMonth}`);
             }}
-            className="group flex items-center gap-[0.5vw] px-[1vw] py-[0.5vw] bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-purple-600 rounded-[0.75vw] transition-all border border-slate-700/50 shadow-lg hover:shadow-xl hover:scale-105"
+            className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-purple-600 rounded-xl transition-all border border-slate-700/50 shadow-lg hover:shadow-xl hover:scale-105"
           >
             <span className="font-semibold">Next</span>
             <ChevronRight size={20} />
           </button>
         </div>
         
-        <div className="grid grid-cols-12 gap-[1.5vw]">
+        <div className="grid grid-cols-12 gap-6">
           
           {/* CALENDAR - 9 cols */}
           <div className="col-span-9">
-            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-[1vw] border border-slate-700/50 p-[1.5vw]">
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
               {/* Days of week header */}
-              <div className="grid grid-cols-7 gap-[0.5vw] mb-[1vw]">
+              <div className="grid grid-cols-7 gap-2 mb-4">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <div key={day} className="text-center text-slate-400 text-[0.85vw] font-semibold py-[0.5vw]">
+                  <div key={day} className="text-center text-slate-400 text-sm font-semibold py-2">
                     {day}
                   </div>
                 ))}
               </div>
 
               {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-[0.5vw]">
+              <div className="grid grid-cols-7 gap-2">
                 {Array.from({ length: firstDayOfMonth }).map((_, i) => (
                   <div key={`empty-${i}`} className="aspect-square" />
                 ))}
@@ -151,8 +174,8 @@ const MonthView = () => {
 
           {/* STATS SIDEBAR - 3 cols */}
           <div className="col-span-3 space-y-4">
-            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-[1vw] border border-slate-700/50 p-[1.5vw]">
-              <h3 className="text-[0.85vw] uppercase tracking-wider text-slate-400 mb-[1vw] font-semibold text-center">Month Stats</h3>
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
+              <h3 className="text-sm uppercase tracking-wider text-slate-400 mb-4 font-semibold text-center">Month Stats</h3>
               
               <div className="space-y-4">
                 <StatRow label="Total P&L" value={formatPrivateAmountWithSign(totalPL, currency, privacyMode)} color={totalPL >= 0 ? 'emerald' : 'red'} />
@@ -164,24 +187,24 @@ const MonthView = () => {
             </div>
 
             {tagPerformance.length > 0 && (
-              <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-[1vw] border border-slate-700/50 p-[1.5vw]">
-                <h3 className="text-[0.85vw] uppercase tracking-wider text-slate-400 mb-[1vw] font-semibold text-center">Strategies</h3>
+              <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
+                <h3 className="text-sm uppercase tracking-wider text-slate-400 mb-4 font-semibold text-center">Strategies</h3>
                 
                 <div className="space-y-3">
                   {tagPerformance.map(tag => (
-                    <div key={tag.tagId} className="bg-slate-800/50 rounded-[0.5vw] p-[0.75vw]">
-                      <div className="flex items-center gap-[0.5vw] mb-[0.5vw]">
-                        <span className="text-[1.25vw]">{tag.tagEmoji}</span>
+                    <div key={tag.tagId} className="bg-slate-800/50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xl">{tag.tagEmoji}</span>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[0.65vw] font-bold truncate" style={{ color: tag.tagColor }}>
+                          <div className="text-xs font-bold truncate" style={{ color: tag.tagColor }}>
                             {tag.tagName}
                           </div>
                         </div>
                       </div>
-                      <div className={`text-[1.15vw] font-black ${tag.totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <div className={`text-lg font-black ${tag.totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         {formatPrivateAmountWithSign(tag.totalPL, currency, privacyMode)}
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-[0.25vw]">
+                      <div className="text-[10px] text-slate-400 mt-1">
                         {tag.trades}T • {tag.winRate}% WR
                       </div>
                     </div>
@@ -234,6 +257,51 @@ const MonthView = () => {
           }}
         />
       )}
+
+      {showImageGallery && selectedImageTrade && (
+        <ImageGalleryModal
+          imageUrl={selectedImageTrade.imageUrl}
+          trade={selectedImageTrade}
+          currency={currency}
+          privacyMode={privacyMode}
+          onClose={() => {
+            setShowImageGallery(false);
+            setSelectedImageTrade(null);
+          }}
+        />
+      )}
+
+      {showTagModal && selectedTagForModal && (
+        <TagTradesModal
+          tag={selectedTagForModal}
+          trades={trades.filter(t => t.tagId === selectedTagForModal.tagId)}
+          scope={`${monthNames[currentMonth]} ${currentYear}`}
+          currency={currency}
+          privacyMode={privacyMode}
+          onClose={() => {
+            setShowTagModal(false);
+            setSelectedTagForModal(null);
+          }}
+          onEditTrade={(trade) => {
+            setSelectedTrade(trade);
+            setShowEditModal(true);
+            setShowTagModal(false);
+          }}
+          onDeleteTrade={async (tradeId) => {
+            if (!confirm('Delete this trade?')) return;
+            try {
+              await deleteTrade.mutateAsync(tradeId);
+            } catch (error) {
+              alert('Failed to delete: ' + error.message);
+            }
+          }}
+          onViewImage={(trade) => {
+            const imageUrl = `https://drive.google.com/thumbnail?id=${trade.driveImageId}&sz=w1200`;
+            handleViewImage({ ...trade, imageUrl });
+            setShowTagModal(false);
+          }}
+        />
+      )}
     </div>
     </>
   );
@@ -253,21 +321,21 @@ const DayCell = ({ day, trades, dayPL, isToday, isWeekend, currency, privacyMode
   return (
     <div 
       onClick={onClick}
-      className={`aspect-square rounded-[0.5vw] border ${bgColor} ${isToday ? 'ring-2 ring-blue-500' : ''} p-[0.5vw] relative hover:bg-slate-700/30 transition-all cursor-pointer`}
+      className={`aspect-square rounded-lg border ${bgColor} ${isToday ? 'ring-2 ring-blue-500' : ''} p-2 relative hover:bg-slate-700/30 transition-all cursor-pointer`}
     >
-      <div className={`text-[0.85vw] font-semibold ${!isWeekend ? 'text-blue-400/60' : 'text-slate-300'}`}>{day}</div>
+      <div className={`text-sm font-semibold ${!isWeekend ? 'text-blue-400/60' : 'text-slate-300'}`}>{day}</div>
 
       {hasData && (
         <>
           {/* P&L - CENTERED AND LARGER - WITH PRIVACY */}
-          <div className={`absolute inset-0 flex items-center justify-center text-[1.15vw] font-black ${dayPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+          <div className={`absolute inset-0 flex items-center justify-center text-lg font-black ${dayPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
             {formatPrivateAmountWithSign(dayPL, currency, privacyMode)}
           </div>
 
           {/* Tags - BOTTOM-LEFT - Stacked 2x2 grid */}
           <div className="absolute bottom-1 left-1 grid grid-cols-2 gap-0.5 max-w-[70%]">
             {[...new Set(trades.map(t => t.tagName).filter(Boolean))].slice(0, 4).map(tagName => (
-              <span key={tagName} className="text-[8px] text-slate-200 bg-slate-800/90 px-[0.25vw] py-0.5 rounded font-semibold truncate border border-slate-700/50 leading-none">
+              <span key={tagName} className="text-[8px] text-slate-200 bg-slate-800/90 px-1 py-0.5 rounded font-semibold truncate border border-slate-700/50 leading-none">
                 {tagName}
               </span>
             ))}
@@ -296,7 +364,7 @@ const DayCell = ({ day, trades, dayPL, isToday, isWeekend, currency, privacyMode
 };
 
 // Day Trades Modal - Shows all trades for a specific day
-const DayTradesModal = ({ day, year, month, trades, tags, currency, privacyMode, onClose, onEditTrade }) => {
+const DayTradesModal = ({ day, year, month, trades, tags, currency, privacyMode, onClose, onEditTrade, onViewImage }) => {
   const deleteTrade = useDeleteTrade();
   const [showAddForm, setShowAddForm] = useState(trades.length === 0);
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -312,61 +380,73 @@ const DayTradesModal = ({ day, year, month, trades, tags, currency, privacyMode,
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-[1vw]">
-      <div className="bg-slate-900 rounded-[1vw] border border-slate-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-[1.5vw]">
-        <div className="flex items-center justify-between mb-[1.5vw] sticky top-0 bg-slate-900 pb-4">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-900 rounded-2xl border border-slate-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+        <div className="flex items-center justify-between mb-6 sticky top-0 bg-slate-900 pb-4">
           <div>
-            <h3 className="text-[1.5vw] font-black">{monthNames[month]} {day}, {year}</h3>
-            <p className="text-[0.85vw] text-slate-400">{trades.length} trade{trades.length !== 1 ? 's' : ''}</p>
+            <h3 className="text-2xl font-black">{monthNames[month]} {day}, {year}</h3>
+            <p className="text-sm text-slate-400">{trades.length} trade{trades.length !== 1 ? 's' : ''}</p>
           </div>
-          <button onClick={onClose} className="p-[0.5vw] hover:bg-slate-800 rounded-[0.5vw]">
+          <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-lg">
             <X size={20} />
           </button>
         </div>
 
         {/* Existing Trades */}
         {trades.length > 0 && !showAddForm && (
-          <div className="space-y-3 mb-[1.5vw]">
+          <div className="space-y-3 mb-6">
             {trades.map(trade => (
-              <div key={trade.tradeId} className="bg-slate-800/50 rounded-[0.5vw] p-[1vw] flex items-center gap-[1vw]">
-                <div className="flex-shrink-0 text-[0.65vw] text-slate-500">
+              <div key={trade.tradeId} className="bg-slate-800/50 rounded-lg p-4 flex items-center gap-4">
+                <div className="flex-shrink-0 text-xs text-slate-500">
                   {trade.time}
                 </div>
 
                 <div className="flex-1">
                   {trade.tagName && (
-                    <div className="flex items-center gap-[0.5vw] mb-[0.25vw]">
-                      <span className="text-[0.85vw]">{trade.tagEmoji}</span>
-                      <span className="text-[0.65vw] font-semibold" style={{ color: trade.tagColor }}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm">{trade.tagEmoji}</span>
+                      <span className="text-xs font-semibold" style={{ color: trade.tagColor }}>
                         {trade.tagName}
                       </span>
                     </div>
                   )}
                   {trade.notes && (
-                    <div className="text-[0.65vw] text-slate-400">{trade.notes}</div>
+                    <div className="text-xs text-slate-400">{trade.notes}</div>
                   )}
                 </div>
 
-                <div className={`text-[1.25vw] font-black ${trade.amount >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <div className={`text-xl font-black ${trade.amount >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {formatPrivateAmountWithSign(trade.amount, currency, privacyMode)}
                 </div>
 
-                <div className="flex gap-[0.5vw]">
+                <div className="flex gap-2">
                   <button
                     onClick={() => {
                       onEditTrade(trade);
                       onClose();
                     }}
-                    className="p-[0.5vw] bg-blue-600 hover:bg-blue-700 rounded-[0.5vw] transition-all"
+                    className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-all"
                   >
                     <Edit size={16} />
                   </button>
                   <button
                     onClick={() => handleDelete(trade.tradeId)}
-                    className="p-[0.5vw] bg-red-600 hover:bg-red-700 rounded-[0.5vw] transition-all"
+                    className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-all"
                   >
                     <Trash2 size={16} />
                   </button>
+                  {trade.driveImageId && (
+                    <button
+                      onClick={() => {
+                        const imageUrl = `https://drive.google.com/thumbnail?id=${trade.driveImageId}&sz=w1200`;
+                        onViewImage({ ...trade, imageUrl });
+                      }}
+                      className="p-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-all"
+                      title="View Screenshot"
+                    >
+                      <Camera size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -377,19 +457,19 @@ const DayTradesModal = ({ day, year, month, trades, tags, currency, privacyMode,
         {!showAddForm ? (
           <button
             onClick={() => setShowAddForm(true)}
-            className="w-full py-[0.75vw] bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg rounded-[0.5vw] transition-all font-semibold flex items-center justify-center gap-[0.5vw]"
+            className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg rounded-lg transition-all font-semibold flex items-center justify-center gap-2"
           >
             <Plus size={20} />
             Add Another Trade
           </button>
         ) : (
           <div className="border-t border-slate-700 pt-6">
-            <div className="flex items-center justify-between mb-[1vw]">
+            <div className="flex items-center justify-between mb-4">
               <h4 className="font-bold">New Trade</h4>
               {trades.length > 0 && (
                 <button
                   onClick={() => setShowAddForm(false)}
-                  className="text-[0.85vw] text-slate-400 hover:text-slate-300"
+                  className="text-sm text-slate-400 hover:text-slate-300"
                 >
                   Cancel
                 </button>
@@ -468,25 +548,25 @@ const TradeAddFormInline = ({ date, tags, currency, onSuccess }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-[0.75vw]">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[0.65vw] font-semibold text-slate-400 mb-[0.5vw]">Time</label>
+          <label className="block text-xs font-semibold text-slate-400 mb-2">Time</label>
           <input
             type="time"
             value={formData.time}
             onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-            className="w-full bg-slate-800 border border-slate-700 rounded-[0.5vw] px-[0.75vw] py-[0.5vw] text-[0.85vw] focus:border-blue-500 focus:outline-none"
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
             required
           />
         </div>
         <div>
-          <label className="block text-[0.65vw] font-semibold text-slate-400 mb-[0.5vw]">Amount ({currency})</label>
+          <label className="block text-xs font-semibold text-slate-400 mb-2">Amount ({currency})</label>
           <input
             type="number"
             step="0.01"
             value={formData.amount}
             onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-            className="w-full bg-slate-800 border border-slate-700 rounded-[0.5vw] px-[0.75vw] py-[0.5vw] text-[0.85vw] focus:border-blue-500 focus:outline-none"
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
             placeholder="100"
             required
           />
@@ -494,11 +574,11 @@ const TradeAddFormInline = ({ date, tags, currency, onSuccess }) => {
       </div>
 
       <div>
-        <label className="block text-[0.65vw] font-semibold text-slate-400 mb-[0.5vw]">Tag (Optional)</label>
+        <label className="block text-xs font-semibold text-slate-400 mb-2">Tag (Optional)</label>
         <select
           value={formData.tagId}
           onChange={(e) => setFormData({ ...formData, tagId: e.target.value })}
-          className="w-full bg-slate-800 border border-slate-700 rounded-[0.5vw] px-[0.75vw] py-[0.5vw] text-[0.85vw] focus:border-blue-500 focus:outline-none"
+          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
         >
           <option value="">No Tag</option>
           {tags.map(tag => (
@@ -510,11 +590,11 @@ const TradeAddFormInline = ({ date, tags, currency, onSuccess }) => {
       </div>
 
       <div>
-        <label className="block text-[0.65vw] font-semibold text-slate-400 mb-[0.5vw]">Notes (Optional)</label>
+        <label className="block text-xs font-semibold text-slate-400 mb-2">Notes (Optional)</label>
         <textarea
           value={formData.notes}
           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-          className="w-full bg-slate-800 border border-slate-700 rounded-[0.5vw] px-[0.75vw] py-[0.5vw] text-[0.85vw] focus:border-blue-500 focus:outline-none resize-none"
+          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:outline-none resize-none"
           rows={2}
           placeholder="Trade notes..."
         />
@@ -522,9 +602,9 @@ const TradeAddFormInline = ({ date, tags, currency, onSuccess }) => {
 
       {/* Image Upload */}
       <div>
-        <label className="block text-[0.65vw] font-semibold text-slate-400 mb-[0.5vw]">Screenshot (Optional)</label>
+        <label className="block text-xs font-semibold text-slate-400 mb-2">Screenshot (Optional)</label>
         {!previewUrl ? (
-          <div className="grid grid-cols-2 gap-[0.5vw]">
+          <div className="grid grid-cols-2 gap-2">
             <label className="cursor-pointer">
               <input
                 type="file"
@@ -533,9 +613,9 @@ const TradeAddFormInline = ({ date, tags, currency, onSuccess }) => {
                 onChange={handleImageSelect}
                 className="hidden"
               />
-              <div className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-[0.5vw] p-[1vw] text-center transition-all">
-                <Camera size={24} className="mx-auto mb-[0.25vw] text-slate-400" />
-                <div className="text-[0.65vw] text-slate-400">Take Photo</div>
+              <div className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-lg p-4 text-center transition-all">
+                <Camera size={24} className="mx-auto mb-1 text-slate-400" />
+                <div className="text-xs text-slate-400">Take Photo</div>
               </div>
             </label>
             
@@ -546,22 +626,22 @@ const TradeAddFormInline = ({ date, tags, currency, onSuccess }) => {
                 onChange={handleImageSelect}
                 className="hidden"
               />
-              <div className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-[0.5vw] p-[1vw] text-center transition-all">
-                <Upload size={24} className="mx-auto mb-[0.25vw] text-slate-400" />
-                <div className="text-[0.65vw] text-slate-400">Upload</div>
+              <div className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-lg p-4 text-center transition-all">
+                <Upload size={24} className="mx-auto mb-1 text-slate-400" />
+                <div className="text-xs text-slate-400">Upload</div>
               </div>
             </label>
           </div>
         ) : (
           <div className="relative">
-            <img src={previewUrl} alt="Preview" className="w-full h-32 object-cover rounded-[0.5vw]" />
+            <img src={previewUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg" />
             <button
               type="button"
               onClick={() => {
                 setFormData({ ...formData, screenshot: null });
                 setPreviewUrl(null);
               }}
-              className="absolute top-2 right-2 p-[0.25vw] bg-black/50 rounded-full hover:bg-black/70"
+              className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-black/70"
             >
               <X size={16} className="text-white" />
             </button>
@@ -572,7 +652,7 @@ const TradeAddFormInline = ({ date, tags, currency, onSuccess }) => {
       <button
         type="submit"
         disabled={addTrade.isLoading}
-        className="w-full py-[0.75vw] bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg rounded-[0.5vw] transition-all font-semibold disabled:opacity-50"
+        className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg rounded-lg transition-all font-semibold disabled:opacity-50"
       >
         {addTrade.isLoading ? 'Saving...' : 'Save Trade'}
       </button>
@@ -638,48 +718,48 @@ const TradeEditModal = ({ trade, tags, currency, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-[1vw]">
-      <div className="bg-slate-900 rounded-[1vw] border border-slate-700 max-w-md w-full p-[1.5vw] max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-[1.5vw]">
-          <h3 className="text-[1.5vw] font-black">Edit Trade</h3>
-          <button onClick={onClose} className="p-[0.5vw] hover:bg-slate-800 rounded-[0.5vw]">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-900 rounded-2xl border border-slate-700 max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-2xl font-black">Edit Trade</h3>
+          <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-lg">
             <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-[0.85vw] font-semibold text-slate-400 mb-[0.5vw]">Date</label>
-            <input type="text" value={trade.date} readOnly className="w-full bg-slate-800/50 border border-slate-700 rounded-[0.5vw] px-[1vw] py-[0.75vw] text-slate-400" />
+            <label className="block text-sm font-semibold text-slate-400 mb-2">Date</label>
+            <input type="text" value={trade.date} readOnly className="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-3 text-slate-400" />
           </div>
 
           <div>
-            <label className="block text-[0.85vw] font-semibold text-slate-400 mb-[0.5vw]">Time</label>
+            <label className="block text-sm font-semibold text-slate-400 mb-2">Time</label>
             <input
               type="time"
               value={formData.time}
               onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-700 rounded-[0.5vw] px-[1vw] py-[0.75vw] focus:border-blue-500 focus:outline-none"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-[0.85vw] font-semibold text-slate-400 mb-[0.5vw]">Amount ({currency})</label>
+            <label className="block text-sm font-semibold text-slate-400 mb-2">Amount ({currency})</label>
             <input
               type="number"
               step="0.01"
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
-              className="w-full bg-slate-800 border border-slate-700 rounded-[0.5vw] px-[1vw] py-[0.75vw] focus:border-blue-500 focus:outline-none"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-[0.85vw] font-semibold text-slate-400 mb-[0.5vw]">Tag</label>
+            <label className="block text-sm font-semibold text-slate-400 mb-2">Tag</label>
             <select
               value={formData.tagId}
               onChange={(e) => setFormData({ ...formData, tagId: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-700 rounded-[0.5vw] px-[1vw] py-[0.75vw] focus:border-blue-500 focus:outline-none"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
             >
               <option value="">No Tag</option>
               {tags.map(tag => (
@@ -691,20 +771,20 @@ const TradeEditModal = ({ trade, tags, currency, onClose }) => {
           </div>
 
           <div>
-            <label className="block text-[0.85vw] font-semibold text-slate-400 mb-[0.5vw]">Notes</label>
+            <label className="block text-sm font-semibold text-slate-400 mb-2">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-700 rounded-[0.5vw] px-[1vw] py-[0.75vw] focus:border-blue-500 focus:outline-none resize-none"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none resize-none"
               rows={3}
             />
           </div>
 
           {/* Image Upload */}
           <div>
-            <label className="block text-[0.85vw] font-semibold text-slate-400 mb-[0.5vw]">Screenshot</label>
+            <label className="block text-sm font-semibold text-slate-400 mb-2">Screenshot</label>
             {!previewUrl ? (
-              <div className="grid grid-cols-2 gap-[0.5vw]">
+              <div className="grid grid-cols-2 gap-2">
                 <label className="cursor-pointer">
                   <input
                     type="file"
@@ -713,9 +793,9 @@ const TradeEditModal = ({ trade, tags, currency, onClose }) => {
                     onChange={handleImageSelect}
                     className="hidden"
                   />
-                  <div className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-[0.5vw] p-[1.5vw] text-center transition-all">
-                    <Camera size={28} className="mx-auto mb-[0.5vw] text-slate-400" />
-                    <div className="text-[0.65vw] text-slate-400">Take Photo</div>
+                  <div className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-lg p-6 text-center transition-all">
+                    <Camera size={28} className="mx-auto mb-2 text-slate-400" />
+                    <div className="text-xs text-slate-400">Take Photo</div>
                   </div>
                 </label>
                 
@@ -726,22 +806,22 @@ const TradeEditModal = ({ trade, tags, currency, onClose }) => {
                     onChange={handleImageSelect}
                     className="hidden"
                   />
-                  <div className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-[0.5vw] p-[1.5vw] text-center transition-all">
-                    <Upload size={28} className="mx-auto mb-[0.5vw] text-slate-400" />
-                    <div className="text-[0.65vw] text-slate-400">Upload</div>
+                  <div className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-lg p-6 text-center transition-all">
+                    <Upload size={28} className="mx-auto mb-2 text-slate-400" />
+                    <div className="text-xs text-slate-400">Upload</div>
                   </div>
                 </label>
               </div>
             ) : (
               <div className="relative">
-                <img src={previewUrl} alt="Trade screenshot" className="w-full h-48 object-cover rounded-[0.5vw]" />
+                <img src={previewUrl} alt="Trade screenshot" className="w-full h-48 object-cover rounded-lg" />
                 <button
                   type="button"
                   onClick={() => {
                     setFormData({ ...formData, screenshot: null });
                     setPreviewUrl(null);
                   }}
-                  className="absolute top-2 right-2 p-[0.5vw] bg-black/50 rounded-full hover:bg-black/70"
+                  className="absolute top-2 right-2 p-2 bg-black/50 rounded-full hover:bg-black/70"
                 >
                   <X size={20} className="text-white" />
                 </button>
@@ -749,25 +829,25 @@ const TradeEditModal = ({ trade, tags, currency, onClose }) => {
             )}
           </div>
 
-          <div className="flex gap-[0.75vw] pt-4">
+          <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={handleDelete}
-              className="px-[1vw] py-[0.75vw] bg-red-600 hover:bg-red-700 rounded-[0.5vw] transition-all font-semibold"
+              className="px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg transition-all font-semibold"
             >
               Delete
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-[1vw] py-[0.75vw] bg-slate-800 hover:bg-slate-700 rounded-[0.5vw] transition-all font-semibold"
+              className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 rounded-lg transition-all font-semibold"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={updateTrade.isLoading}
-              className="flex-1 px-[1vw] py-[0.75vw] bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg rounded-[0.5vw] transition-all font-semibold disabled:opacity-50"
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg rounded-lg transition-all font-semibold disabled:opacity-50"
             >
               {updateTrade.isLoading ? 'Saving...' : 'Save'}
             </button>
@@ -811,51 +891,51 @@ const TradeAddModal = ({ date, tags, currency, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-[1vw]">
-      <div className="bg-slate-900 rounded-[1vw] border border-slate-700 max-w-md w-full p-[1.5vw]">
-        <div className="flex items-center justify-between mb-[1.5vw]">
-          <h3 className="text-[1.5vw] font-black">New Trade</h3>
-          <button onClick={onClose} className="p-[0.5vw] hover:bg-slate-800 rounded-[0.5vw]">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-900 rounded-2xl border border-slate-700 max-w-md w-full p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-2xl font-black">New Trade</h3>
+          <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-lg">
             <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-[0.85vw] font-semibold text-slate-400 mb-[0.5vw]">Date</label>
-            <input type="text" value={date} readOnly className="w-full bg-slate-800/50 border border-slate-700 rounded-[0.5vw] px-[1vw] py-[0.75vw] text-slate-400" />
+            <label className="block text-sm font-semibold text-slate-400 mb-2">Date</label>
+            <input type="text" value={date} readOnly className="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-3 text-slate-400" />
           </div>
 
           <div>
-            <label className="block text-[0.85vw] font-semibold text-slate-400 mb-[0.5vw]">Time</label>
+            <label className="block text-sm font-semibold text-slate-400 mb-2">Time</label>
             <input
               type="time"
               value={formData.time}
               onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-700 rounded-[0.5vw] px-[1vw] py-[0.75vw] focus:border-blue-500 focus:outline-none"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
               required
             />
           </div>
 
           <div>
-            <label className="block text-[0.85vw] font-semibold text-slate-400 mb-[0.5vw]">Amount ({currency})</label>
+            <label className="block text-sm font-semibold text-slate-400 mb-2">Amount ({currency})</label>
             <input
               type="number"
               step="0.01"
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-700 rounded-[0.5vw] px-[1vw] py-[0.75vw] focus:border-blue-500 focus:outline-none"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
               placeholder="e.g., 100 or -50"
               required
             />
           </div>
 
           <div>
-            <label className="block text-[0.85vw] font-semibold text-slate-400 mb-[0.5vw]">Tag</label>
+            <label className="block text-sm font-semibold text-slate-400 mb-2">Tag</label>
             <select
               value={formData.tagId}
               onChange={(e) => setFormData({ ...formData, tagId: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-700 rounded-[0.5vw] px-[1vw] py-[0.75vw] focus:border-blue-500 focus:outline-none"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
             >
               <option value="">No Tag</option>
               {tags.map(tag => (
@@ -867,27 +947,27 @@ const TradeAddModal = ({ date, tags, currency, onClose }) => {
           </div>
 
           <div>
-            <label className="block text-[0.85vw] font-semibold text-slate-400 mb-[0.5vw]">Notes</label>
+            <label className="block text-sm font-semibold text-slate-400 mb-2">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-700 rounded-[0.5vw] px-[1vw] py-[0.75vw] focus:border-blue-500 focus:outline-none resize-none"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none resize-none"
               rows={3}
               placeholder="Trade notes..."
             />
           </div>
 
-          <div className="flex gap-[0.75vw] pt-4">
+          <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-[1vw] py-[0.75vw] bg-slate-800 hover:bg-slate-700 rounded-[0.5vw] transition-all font-semibold"
+              className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 rounded-lg transition-all font-semibold"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-[1vw] py-[0.75vw] bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg rounded-[0.5vw] transition-all font-semibold"
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg rounded-lg transition-all font-semibold"
             >
               Save Trade
             </button>
@@ -902,8 +982,8 @@ const StatRow = ({ label, value, color }) => {
   const colorClass = color === 'emerald' ? 'text-emerald-400' : color === 'red' ? 'text-red-400' : 'text-white';
   return (
     <div className="flex items-center justify-between">
-      <span className="text-[0.65vw] text-slate-400 uppercase tracking-wider">{label}</span>
-      <span className={`text-[1.15vw] font-black ${colorClass}`}>{value}</span>
+      <span className="text-xs text-slate-400 uppercase tracking-wider">{label}</span>
+      <span className={`text-lg font-black ${colorClass}`}>{value}</span>
     </div>
   );
 };
