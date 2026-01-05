@@ -17,7 +17,7 @@ const queryClient = new QueryClient({
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter basename="/TradeZen">
+    <BrowserRouter basename="/TradeZen-Test">
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <App />
