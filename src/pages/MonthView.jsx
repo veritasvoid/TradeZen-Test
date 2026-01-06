@@ -217,7 +217,7 @@ const MonthView = () => {
       </div>
 
       {/* MODALS */}
-      {showDayTradesModal && selectedDay && (
+     {showDayTradesModal && selectedDay && (
         <DayTradesModal
           day={selectedDay}
           year={currentYear}
@@ -231,8 +231,10 @@ const MonthView = () => {
             setSelectedDay(null);
           }}
           onEditTrade={handleEditTrade}
+          onViewImage={handleViewImage}
         />
       )}
+
 
       {showEditModal && selectedTrade && (
         <TradeEditModal
@@ -605,19 +607,31 @@ const TradeAddFormInline = ({ date, tags, currency, onSuccess }) => {
         <label className="block text-xs font-semibold text-slate-400 mb-2">Screenshot (Optional)</label>
         {!previewUrl ? (
           <div className="grid grid-cols-2 gap-2">
-            <label className="cursor-pointer">
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleImageSelect}
-                className="hidden"
-              />
-              <div className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-lg p-4 text-center transition-all">
-                <Camera size={24} className="mx-auto mb-1 text-slate-400" />
-                <div className="text-xs text-slate-400">Take Photo</div>
-              </div>
-            </label>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const items = await navigator.clipboard.read();
+                  for (const item of items) {
+                    if (item.types.includes('image/png')) {
+                      const blob = await item.getType('image/png');
+                      const file = new File([blob], 'pasted-image.png', { type: 'image/png' });
+                      setFormData({ ...formData, screenshot: file });
+                      setPreviewUrl(URL.createObjectURL(file));
+                      return;
+                    }
+                  }
+                  alert('No image found in clipboard. Copy an image first (Snipping Tool, screenshot, etc.)');
+                } catch (err) {
+                  alert('Failed to paste image. Try using Ctrl+V or copy an image first.');
+                }
+              }}
+              className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-lg p-4 text-center transition-all cursor-pointer"
+            >
+              <Camera size={24} className="mx-auto mb-1 text-slate-400" />
+              <div className="text-xs text-slate-400">Paste Image</div>
+              <div className="text-[10px] text-slate-500 mt-1">(Ctrl+V)</div>
+            </button>
             
             <label className="cursor-pointer">
               <input
@@ -666,7 +680,7 @@ const TradeEditModal = ({ trade, tags, currency, onClose }) => {
   const deleteTrade = useDeleteTrade();
   const [formData, setFormData] = useState({
     amount: trade.amount,
-    time: trade.time,
+   time: trade.time || '',  // FIX #1: Fallback to empty string
     tagId: trade.tagId || '',
     notes: trade.notes || '',
     screenshot: null
@@ -785,19 +799,31 @@ const TradeEditModal = ({ trade, tags, currency, onClose }) => {
             <label className="block text-sm font-semibold text-slate-400 mb-2">Screenshot</label>
             {!previewUrl ? (
               <div className="grid grid-cols-2 gap-2">
-                <label className="cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleImageSelect}
-                    className="hidden"
-                  />
-                  <div className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-lg p-6 text-center transition-all">
-                    <Camera size={28} className="mx-auto mb-2 text-slate-400" />
-                    <div className="text-xs text-slate-400">Take Photo</div>
-                  </div>
-                </label>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const items = await navigator.clipboard.read();
+                      for (const item of items) {
+                        if (item.types.includes('image/png')) {
+                          const blob = await item.getType('image/png');
+                          const file = new File([blob], 'pasted-image.png', { type: 'image/png' });
+                          setFormData({ ...formData, screenshot: file });
+                          setPreviewUrl(URL.createObjectURL(file));
+                          return;
+                        }
+                      }
+                      alert('No image found in clipboard. Copy an image first (Snipping Tool, screenshot, etc.)');
+                    } catch (err) {
+                      alert('Failed to paste image. Try using Ctrl+V or copy an image first.');
+                    }
+                  }}
+                  className="border-2 border-dashed border-slate-700 hover:border-slate-600 rounded-lg p-6 text-center transition-all cursor-pointer"
+                >
+                  <Camera size={28} className="mx-auto mb-2 text-slate-400" />
+                  <div className="text-xs text-slate-400">Paste Image</div>
+                  <div className="text-[10px] text-slate-500 mt-1">(Ctrl+V)</div>
+                </button>
                 
                 <label className="cursor-pointer">
                   <input
