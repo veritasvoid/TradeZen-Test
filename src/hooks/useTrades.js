@@ -177,14 +177,14 @@ const updateTrade = async ({ tradeId, updates }) => {
   const now = new Date().toISOString();
   const updatedData = [
     tradeId,
-    updates.date || trade.date,
+    updates.date !== undefined ? updates.date : trade.date,
     updates.time !== undefined ? updates.time : trade.time,  // FIX #1: Allow empty string
     updates.amount !== undefined ? updates.amount : trade.amount,
-    updates.tagId || trade.tagId,
-    updates.tagName || trade.tagName,
-    updates.tagColor || trade.tagColor,
-    updates.tagEmoji || trade.tagEmoji,
-    driveImageId || '',
+    updates.tagId !== undefined ? updates.tagId : trade.tagId,
+    updates.tagName !== undefined ? updates.tagName : trade.tagName,
+    updates.tagColor !== undefined ? updates.tagColor : trade.tagColor,
+    updates.tagEmoji !== undefined ? updates.tagEmoji : trade.tagEmoji,
+    driveImageId !== undefined ? driveImageId : (trade.driveImageId || ''),
     updates.notes !== undefined ? updates.notes : trade.notes,
     trade.createdAt,
     now
