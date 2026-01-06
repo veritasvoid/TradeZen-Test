@@ -65,8 +65,11 @@ const Dashboard = () => {
   const losers = trades.filter(t => t.amount < 0);
   const avgWinner = winners.length > 0 ? winners.reduce((sum, t) => sum + t.amount, 0) / winners.length : 0;
   const avgLoser = losers.length > 0 ? losers.reduce((sum, t) => sum + t.amount, 0) / losers.length : 0;
-  const bestTrade = trades.length > 0 ? Math.max(...trades.map(t => t.amount)) : 0;
-  const worstTrade = trades.length > 0 ? Math.min(...trades.map(t => t.amount)) : 0;
+  // FIX #5: Best = highest positive only, Worst = lowest negative only
+  const positiveTrades = trades.filter(t => t.amount > 0);
+  const negativeTrades = trades.filter(t => t.amount < 0);
+  const bestTrade = positiveTrades.length > 0 ? Math.max(...positiveTrades.map(t => t.amount)) : 0;
+  const worstTrade = negativeTrades.length > 0 ? Math.min(...negativeTrades.map(t => t.amount)) : 0;
   const accountBalance = startingBalance + totalPL;
 
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -332,21 +335,32 @@ const Dashboard = () => {
 };
 
 const calculateTagPerformance = (trades, tags) => {
+  // FIX #4: Initialize ALL tags with zero stats
   const tagStats = {};
+  tags.forEach(tag => {
+    tagStats[tag.tagId] = {
+      tagId: tag.tagId,
+      tagName: tag.name,
+      tagColor: tag.color,
+      tagEmoji: tag.emoji,
+      totalPL: 0,
+      trades: 0,
+      wins: 0,
+      losses: 0
+    };
+  });
+  
+  // Add trade data to tags
   trades.forEach(trade => {
-    const tagId = trade.tagId || 'none';
-    if (tagId === 'none') return;
-    if (!tagStats[tagId]) {
-      tagStats[tagId] = {
-        tagId, tagName: trade.tagName, tagColor: trade.tagColor, tagEmoji: trade.tagEmoji,
-        totalPL: 0, trades: 0, wins: 0, losses: 0
-      };
-    }
+    const tagId = trade.tagId;
+    if (!tagId || !tagStats[tagId]) return;
+    
     tagStats[tagId].totalPL += trade.amount;
     tagStats[tagId].trades += 1;
     if (trade.amount > 0) tagStats[tagId].wins += 1;
     if (trade.amount < 0) tagStats[tagId].losses += 1;
   });
+  
   return Object.values(tagStats)
     .map(tag => ({ ...tag, winRate: tag.trades > 0 ? Math.round((tag.wins / tag.trades) * 100) : 0 }))
     .sort((a, b) => b.totalPL - a.totalPL);
