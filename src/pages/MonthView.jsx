@@ -676,6 +676,8 @@ const TradeAddFormInline = ({ date, tags, currency, onSuccess }) => {
 
 // Edit Trade Modal
 const TradeEditModal = ({ trade, tags, currency, onClose }) => {
+  console.log('🔍 Trade being edited:', trade);  // ADD THIS LINE
+  console.log('🕐 Time value:', trade.time, 'Type:', typeof trade.time);  // ADD THIS LINE
   const updateTrade = useUpdateTrade();
   const deleteTrade = useDeleteTrade();
   const [formData, setFormData] = useState({
