@@ -51,7 +51,6 @@ const fetchTrades = async () => {
 };
 
 // Fetch trades for specific month
-// Fetch trades for specific month
 const fetchMonthTrades = async (year, month) => {
   console.log(`📅 Fetching trades for: ${year}-${month} (month is 0-indexed, so ${month} = ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month]})`);
   
@@ -93,7 +92,9 @@ const addTrade = async (tradeData) => {
       useWebWorker: true
     });
     
-    const filename = `${tradeData.tradeId}_${tradeData.date}.jpg`;
+    // FIX #2: Use date-time format for filename
+    const timeStr = tradeData.time ? tradeData.time.replace(/:/g, '-') : 'no-time';
+    const filename = `${tradeData.date}_${timeStr}.jpg`;
     driveImageId = await googleAPI.uploadImage(compressed, filename);
   }
 
@@ -165,7 +166,11 @@ const updateTrade = async ({ tradeId, updates }) => {
       useWebWorker: true
     });
     
-    const filename = `${tradeId}_${updates.date || trade.date}.jpg`;
+    // FIX #2: Use date-time format for filename
+    const tradeDate = updates.date || trade.date;
+    const tradeTime = updates.time || trade.time;
+    const timeStr = tradeTime ? tradeTime.replace(/:/g, '-') : 'no-time';
+    const filename = `${tradeDate}_${timeStr}.jpg`;
     driveImageId = await googleAPI.uploadImage(compressed, filename);
   }
 
@@ -173,7 +178,7 @@ const updateTrade = async ({ tradeId, updates }) => {
   const updatedData = [
     tradeId,
     updates.date || trade.date,
-    updates.time || trade.time,
+    updates.time !== undefined ? updates.time : trade.time,  // FIX #1: Allow empty string
     updates.amount !== undefined ? updates.amount : trade.amount,
     updates.tagId || trade.tagId,
     updates.tagName || trade.tagName,
