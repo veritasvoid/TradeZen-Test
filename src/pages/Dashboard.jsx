@@ -17,7 +17,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { data: allTrades = [], isLoading } = useTrades();
   const { data: tags = [], isLoading: tagsLoading } = useTags();
-  useSettings(); // Fetch settings from Google Sheets on mount
+  useSettings();
   const currency = useSettingsStore(state => state.settings.currency);
   const privacyMode = useSettingsStore(state => state.settings.privacyMode);
   const startingBalance = useSettingsStore(state => state.settings.startingBalance || 0);
@@ -27,7 +27,6 @@ const Dashboard = () => {
   
   const [selectedYear, setSelectedYear] = React.useState(currentYear);
   
-  // NEW: Modal states
   const [showTagModal, setShowTagModal] = React.useState(false);
   const [selectedTagForModal, setSelectedTagForModal] = React.useState(null);
   const [showBestModal, setShowBestModal] = React.useState(false);
@@ -37,7 +36,6 @@ const Dashboard = () => {
   
   const maxYear = currentYear;
   
-  // Handler functions for modals
   const handleViewImage = (trade) => {
     setSelectedImageTrade(trade);
     setShowImageGallery(true);
@@ -65,7 +63,6 @@ const Dashboard = () => {
   const losers = trades.filter(t => t.amount < 0);
   const avgWinner = winners.length > 0 ? winners.reduce((sum, t) => sum + t.amount, 0) / winners.length : 0;
   const avgLoser = losers.length > 0 ? losers.reduce((sum, t) => sum + t.amount, 0) / losers.length : 0;
-  // FIX #5: Best = highest positive only, Worst = lowest negative only
   const positiveTrades = trades.filter(t => t.amount > 0);
   const negativeTrades = trades.filter(t => t.amount < 0);
   const bestTrade = positiveTrades.length > 0 ? Math.max(...positiveTrades.map(t => t.amount)) : 0;
@@ -85,7 +82,7 @@ const Dashboard = () => {
     return (
       <>
         <TopNav selectedYear={selectedYear} onYearChange={setSelectedYear} maxYear={maxYear} />
-        <div className="p-6 pt-20"><Loading type="skeleton-grid" /></div>
+        <div className="p-[clamp(0.75rem,2vw,1.5rem)] pt-[clamp(4rem,10vh,5rem)]"><Loading type="skeleton-grid" /></div>
       </>
     );
   }
@@ -94,56 +91,57 @@ const Dashboard = () => {
     <>
       <TopNav selectedYear={selectedYear} onYearChange={setSelectedYear} maxYear={maxYear} />
       
-      <div className="h-screen overflow-hidden flex flex-col pt-20">
-        <div className="px-3 pb-2">
-          <div className="grid grid-cols-12 gap-2">
+      <div className="min-h-screen overflow-auto flex flex-col pt-[clamp(4rem,10vh,5rem)]">
+        <div style={{ padding: 'clamp(0.5rem, 1.5vw, 0.75rem)' }}>
+          <div className="grid grid-cols-12" style={{ gap: 'clamp(4px, 0.5vw, 8px)' }}>
             
-            {/* Win Rate - NO CHART, just number */}
-            <div className="col-span-1 card p-3 flex flex-col items-center justify-center">
-              <div className="text-xs text-slate-400 mb-1">WIN RATE</div>
-              <div className="text-3xl font-black text-emerald-400">{overallWinRate}%</div>
+            {/* Win Rate */}
+            <div className="col-span-3 lg:col-span-1 card flex flex-col items-center justify-center" style={{ padding: 'clamp(0.5rem, 1.5vw, 0.75rem)' }}>
+              <div className="text-slate-400" style={{ fontSize: 'clamp(9px, 1vw, 12px)', marginBottom: 'clamp(2px, 0.3vw, 4px)' }}>WIN RATE</div>
+              <div className="font-black text-emerald-400" style={{ fontSize: 'clamp(20px, 3.5vw, 48px)' }}>{overallWinRate}%</div>
             </div>
 
             {/* Trades */}
-            <div className="col-span-1 card p-3 flex flex-col items-center justify-center">
-              <div className="text-xs text-slate-400 mb-1">TRADES</div>
-              <div className="text-3xl font-black">{totalTrades}</div>
+            <div className="col-span-3 lg:col-span-1 card flex flex-col items-center justify-center" style={{ padding: 'clamp(0.5rem, 1.5vw, 0.75rem)' }}>
+              <div className="text-slate-400" style={{ fontSize: 'clamp(9px, 1vw, 12px)', marginBottom: 'clamp(2px, 0.3vw, 4px)' }}>TRADES</div>
+              <div className="font-black" style={{ fontSize: 'clamp(20px, 3.5vw, 48px)' }}>{totalTrades}</div>
             </div>
 
-            {/* Account Balance (combines old Account + Yearly P&L) */}
-            <div className="col-span-2 card p-3 flex flex-col items-center justify-center">
-              <div className="text-xs text-slate-400 mb-1">ACCOUNT VALUE</div>
-              <div className={`text-2xl font-black ${accountBalance >= startingBalance ? 'text-emerald-400' : 'text-red-400'}`}>
+            {/* Account Value */}
+            <div className="col-span-6 lg:col-span-2 card flex flex-col items-center justify-center" style={{ padding: 'clamp(0.5rem, 1.5vw, 0.75rem)' }}>
+              <div className="text-slate-400" style={{ fontSize: 'clamp(9px, 1vw, 12px)', marginBottom: 'clamp(2px, 0.3vw, 4px)' }}>ACCOUNT VALUE</div>
+              <div className={`font-black ${accountBalance >= startingBalance ? 'text-emerald-400' : 'text-red-400'}`} style={{ fontSize: 'clamp(16px, 2.5vw, 32px)' }}>
                 {formatPrivateAmount(accountBalance, currency, privacyMode)}
               </div>
             </div>
 
-            {/* Strategy Performance - NO HEADER */}
-            <div className="col-span-8 card p-3">
+            {/* Strategy Performance */}
+            <div className="col-span-12 lg:col-span-8 card overflow-x-auto" style={{ padding: 'clamp(0.5rem, 1.5vw, 0.75rem)' }}>
               {tagPerformance.length > 0 ? (
-                <div className="flex gap-3 h-full items-center">
+                <div className="flex h-full items-center" style={{ gap: 'clamp(6px, 1vw, 12px)' }}>
                   {tagPerformance.map(tag => (
                     <div 
                       key={tag.tagId} 
-                      className="relative flex-1 bg-slate-800/50 rounded-xl p-2.5 border border-slate-700/30 cursor-pointer hover:bg-slate-700/50 hover:scale-105 transition-all"
+                      className="relative flex-shrink-0 bg-slate-800/50 rounded-xl border border-slate-700/30 cursor-pointer hover:bg-slate-700/50 hover:scale-105 transition-all"
+                      style={{ 
+                        padding: 'clamp(0.375rem, 1vw, 0.625rem)',
+                        minWidth: 'clamp(80px, 10vw, 150px)'
+                      }}
                       onClick={() => handleViewTagTrades(tag)}
                     >
-                      {/* Emoji + Tag Name */}
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <span className="text-xl">{tag.tagEmoji}</span>
-                        <div className="text-[11px] font-bold truncate" style={{ color: tag.tagColor }}>
+                      <div className="flex items-center mb-1" style={{ gap: 'clamp(4px, 0.5vw, 6px)' }}>
+                        <span style={{ fontSize: 'clamp(14px, 2vw, 20px)' }}>{tag.tagEmoji}</span>
+                        <div className="font-bold truncate" style={{ fontSize: 'clamp(9px, 1.1vw, 11px)', color: tag.tagColor }}>
                           {tag.tagName}
                         </div>
                       </div>
                       
-                      {/* P&L Amount - Centered */}
-                      <div className={`text-center text-base font-black mb-2 ${tag.totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <div className={`text-center font-black ${tag.totalPL >= 0 ? 'text-emerald-400' : 'text-red-400'}`} style={{ fontSize: 'clamp(12px, 1.6vw, 16px)', marginBottom: 'clamp(4px, 0.8vw, 8px)' }}>
                         {formatPrivateAmount(tag.totalPL, currency, privacyMode)}
                       </div>
                       
-                      {/* Progress Bar - THICKER and SHORTER */}
-                      <div className="mb-1 mr-8">
-                        <div className="h-2.5 bg-slate-900 rounded-full overflow-hidden">
+                      <div style={{ marginBottom: 'clamp(2px, 0.4vw, 4px)', marginRight: 'clamp(1rem, 3vw, 2rem)' }}>
+                        <div className="bg-slate-900 rounded-full overflow-hidden" style={{ height: 'clamp(6px, 1vw, 10px)' }}>
                           <div 
                             className={`h-full ${tag.winRate >= 80 ? 'bg-emerald-500' : tag.winRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
                             style={{ width: `${tag.winRate}%` }}
@@ -151,65 +149,79 @@ const Dashboard = () => {
                         </div>
                       </div>
                       
-                      {/* Win Rate % - Centered to progress bar */}
-                      <div className="text-xs font-bold text-slate-300 text-center mr-8">{tag.winRate}%</div>
+                      <div className="font-bold text-slate-300 text-center" style={{ fontSize: 'clamp(9px, 1.1vw, 12px)', marginRight: 'clamp(1rem, 3vw, 2rem)' }}>{tag.winRate}%</div>
                       
-                      {/* Trade Count Badge - Bottom Right Corner */}
-                      <div className="absolute bottom-1.5 right-1.5 w-5 h-5 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg border border-slate-700">
-                        <span className="text-[9px] font-black text-white">{tag.trades}</span>
+                      <div 
+                        className="absolute bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg border border-slate-700"
+                        style={{ 
+                          bottom: 'clamp(4px, 0.5vw, 6px)',
+                          right: 'clamp(4px, 0.5vw, 6px)',
+                          width: 'clamp(16px, 2vw, 20px)',
+                          height: 'clamp(16px, 2vw, 20px)'
+                        }}
+                      >
+                        <span className="font-black text-white" style={{ fontSize: 'clamp(7px, 1vw, 9px)' }}>{tag.trades}</span>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-slate-500 text-sm text-center">No tagged trades</div>
+                <div className="text-slate-500 text-center" style={{ fontSize: 'clamp(12px, 1.4vw, 14px)' }}>No tagged trades</div>
               )}
             </div>
           </div>
         </div>
 
-        <div className="flex-1 px-3 pb-3 min-h-0">
-          <div className="h-full grid grid-cols-12 gap-2">
+        <div className="flex-1 min-h-0" style={{ padding: 'clamp(0.5rem, 1.5vw, 0.75rem)' }}>
+          <div className="h-full grid grid-cols-12" style={{ gap: 'clamp(4px, 0.5vw, 8px)' }}>
             
-            {/* METRICS - 4 separate boxes in a column */}
-            <div className="col-span-2 grid grid-rows-4 gap-2">
-              <div className="card p-3 flex flex-col items-center justify-center">
-                <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">AVG WINNER</div>
-                <div className="text-2xl font-black text-emerald-400">{formatPrivateAmount(avgWinner, currency, privacyMode)}</div>
-              </div>
-              
-              <div className="card p-3 flex flex-col items-center justify-center">
-                <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">AVG LOSER</div>
-                <div className="text-2xl font-black text-red-400">{formatPrivateAmount(Math.abs(avgLoser), currency, privacyMode)}</div>
+            {/* METRICS */}
+            <div className="col-span-12 lg:col-span-2 grid grid-cols-2 lg:grid-cols-1 lg:grid-rows-4" style={{ gap: 'clamp(4px, 0.5vw, 8px)' }}>
+              <div 
+                className="card flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800/70 transition-all"
+                style={{ padding: 'clamp(0.5rem, 1.5vw, 0.75rem)' }}
+              >
+                <div className="text-slate-400 uppercase tracking-wider" style={{ fontSize: 'clamp(9px, 1vw, 12px)', marginBottom: 'clamp(4px, 0.5vw, 8px)' }}>AVG WIN</div>
+                <div className="font-black text-emerald-400" style={{ fontSize: 'clamp(14px, 2.5vw, 24px)' }}>{formatPrivateAmount(avgWinner, currency, privacyMode)}</div>
               </div>
               
               <div 
-                className="card p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800/70 transition-all"
+                className="card flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800/70 transition-all"
+                style={{ padding: 'clamp(0.5rem, 1.5vw, 0.75rem)' }}
+              >
+                <div className="text-slate-400 uppercase tracking-wider" style={{ fontSize: 'clamp(9px, 1vw, 12px)', marginBottom: 'clamp(4px, 0.5vw, 8px)' }}>AVG LOSS</div>
+                <div className="font-black text-red-400" style={{ fontSize: 'clamp(14px, 2.5vw, 24px)' }}>{formatPrivateAmount(Math.abs(avgLoser), currency, privacyMode)}</div>
+              </div>
+              
+              <div 
+                className="card flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800/70 transition-all"
+                style={{ padding: 'clamp(0.5rem, 1.5vw, 0.75rem)' }}
                 onClick={() => setShowBestModal(true)}
               >
-                <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">BEST</div>
-                <div className="text-2xl font-black text-emerald-400">{formatPrivateAmount(bestTrade, currency, privacyMode)}</div>
+                <div className="text-slate-400 uppercase tracking-wider" style={{ fontSize: 'clamp(9px, 1vw, 12px)', marginBottom: 'clamp(4px, 0.5vw, 8px)' }}>BEST</div>
+                <div className="font-black text-emerald-400" style={{ fontSize: 'clamp(14px, 2.5vw, 24px)' }}>{formatPrivateAmount(bestTrade, currency, privacyMode)}</div>
               </div>
               
               <div 
-                className="card p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800/70 transition-all"
+                className="card flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800/70 transition-all"
+                style={{ padding: 'clamp(0.5rem, 1.5vw, 0.75rem)' }}
                 onClick={() => setShowWorstModal(true)}
               >
-                <div className="text-xs text-slate-400 uppercase tracking-wider mb-2">WORST</div>
-                <div className="text-2xl font-black text-red-400">{formatPrivateAmount(Math.abs(worstTrade), currency, privacyMode)}</div>
+                <div className="text-slate-400 uppercase tracking-wider" style={{ fontSize: 'clamp(9px, 1vw, 12px)', marginBottom: 'clamp(4px, 0.5vw, 8px)' }}>WORST</div>
+                <div className="font-black text-red-400" style={{ fontSize: 'clamp(14px, 2.5vw, 24px)' }}>{formatPrivateAmount(Math.abs(worstTrade), currency, privacyMode)}</div>
               </div>
             </div>
 
-            <div className="col-span-10 flex flex-col gap-2 min-h-0">
+            <div className="col-span-12 lg:col-span-10 flex flex-col min-h-0" style={{ gap: 'clamp(4px, 0.5vw, 8px)' }}>
               
-              {/* Chart - NO $ SIGN IN LABELS */}
-              <div className="flex-[3] card p-4 min-h-0">
-                <div className="text-center text-xl font-black mb-2">{selectedYear}</div>
-                <div className="h-[calc(100%-2rem)]">
+              {/* Chart */}
+              <div className="flex-[3] card min-h-0" style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)' }}>
+                <div className="text-center font-black" style={{ fontSize: 'clamp(16px, 2.5vw, 24px)', marginBottom: 'clamp(4px, 0.8vw, 8px)' }}>{selectedYear}</div>
+                <div style={{ height: 'calc(100% - clamp(20px, 3.3vw, 32px))' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData} margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
-                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 'clamp(9px, 1.1vw, 11px)' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 'clamp(8px, 1vw, 10px)' }} />
                       <Bar dataKey="pl" radius={[4, 4, 0, 0]} barSize={30}>
                         {chartData.map((entry, i) => (
                           <Cell key={i} fill={entry.pl >= 0 ? '#10b981' : '#ef4444'} />
@@ -218,7 +230,7 @@ const Dashboard = () => {
                           dataKey="pl" 
                           position="top" 
                           formatter={(v) => v !== 0 ? (privacyMode ? '****' : v.toLocaleString()) : ''} 
-                          style={{ fill: '#e2e8f0', fontSize: 10, fontWeight: 700 }} 
+                          style={{ fill: '#e2e8f0', fontSize: 'clamp(8px, 1vw, 10px)', fontWeight: 700 }} 
                         />
                       </Bar>
                     </BarChart>
@@ -226,9 +238,9 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Monthly Tiles */}
-              <div className="flex-[2] card p-3 min-h-0">
-                <div className="h-full grid grid-cols-6 gap-2">
+              {/* Month Tiles */}
+              <div className="flex-[2] card min-h-0" style={{ padding: 'clamp(0.5rem, 1.5vw, 0.75rem)' }}>
+                <div className="h-full grid grid-cols-6" style={{ gap: 'clamp(4px, 0.5vw, 8px)' }}>
                   {yearlyStats.map((m) => (
                     <MonthTile
                       key={m.month}
@@ -329,13 +341,11 @@ const Dashboard = () => {
           }}
         />
       )}
-
     </>
   );
 };
 
 const calculateTagPerformance = (trades, tags) => {
-  // FIX #4: Initialize ALL tags with zero stats
   const tagStats = {};
   tags.forEach(tag => {
     tagStats[tag.tagId] = {
@@ -350,7 +360,6 @@ const calculateTagPerformance = (trades, tags) => {
     };
   });
   
-  // Add trade data to tags
   trades.forEach(trade => {
     const tagId = trade.tagId;
     if (!tagId || !tagStats[tagId]) return;
@@ -371,11 +380,14 @@ const MonthTile = ({ month, stats, isCurrentMonth, onClick }) => {
   const hasData = stats.tradeCount > 0;
   
   return (
-    <div onClick={onClick} className={`relative bg-slate-800/30 rounded-lg p-2 cursor-pointer hover:bg-slate-800/50 transition-all flex flex-col items-center justify-center ${isCurrentMonth ? 'ring-2 ring-blue-500' : ''}`}>
-      <div className="text-xs text-slate-400 font-semibold mb-2">{month}</div>
+    <div 
+      onClick={onClick} 
+      className={`relative bg-slate-800/30 rounded-lg cursor-pointer hover:bg-slate-800/50 transition-all flex flex-col items-center justify-center ${isCurrentMonth ? 'ring-2 ring-blue-500' : ''}`}
+      style={{ padding: 'clamp(0.25rem, 1vw, 0.5rem)' }}
+    >
+      <div className="text-slate-400 font-semibold" style={{ fontSize: 'clamp(9px, 1.1vw, 12px)', marginBottom: 'clamp(4px, 0.8vw, 8px)' }}>{month}</div>
       
-      {/* LARGER Donut - 70px (was 56px) */}
-      <div className="relative w-[70px] h-[70px]">
+      <div className="relative" style={{ width: 'clamp(45px, 6vw, 70px)', height: 'clamp(45px, 6vw, 70px)' }}>
         <svg viewBox="0 0 36 36" className="transform -rotate-90">
           <circle cx="18" cy="18" r="16" fill="none" stroke="#1e293b" strokeWidth="3.5" />
           {hasData && (
@@ -387,20 +399,25 @@ const MonthTile = ({ month, stats, isCurrentMonth, onClick }) => {
           {!hasData && <circle cx="18" cy="18" r="16" fill="none" stroke="#475569" strokeWidth="3.5" />}
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          {/* LARGER % text - text-sm (was text-xs) */}
-          <span className={`text-sm font-black ${!hasData ? 'text-slate-600' : ''}`}>{wr}%</span>
+          <span className={`font-black ${!hasData ? 'text-slate-600' : ''}`} style={{ fontSize: 'clamp(10px, 1.4vw, 14px)' }}>{wr}%</span>
         </div>
       </div>
       
-      {/* Trade Count Badge - Bottom Right Corner */}
       {hasData && (
-        <div className="absolute bottom-2 right-2 w-7 h-7 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg border border-slate-700">
-          <span className="text-[11px] font-black text-white">{stats.tradeCount}</span>
+        <div 
+          className="absolute bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-lg border border-slate-700"
+          style={{
+            bottom: 'clamp(4px, 0.8vw, 8px)',
+            right: 'clamp(4px, 0.8vw, 8px)',
+            width: 'clamp(20px, 2.5vw, 28px)',
+            height: 'clamp(20px, 2.5vw, 28px)'
+          }}
+        >
+          <span className="font-black text-white" style={{ fontSize: 'clamp(8px, 1.1vw, 11px)' }}>{stats.tradeCount}</span>
         </div>
       )}
     </div>
   );
 };
-
 
 export default Dashboard;
